@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gemini Live Home Scan Demo</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-layer bg-layer-1"></div>
+    <div class="bg-layer bg-layer-2"></div>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">Realtime Spatial Storytelling</p>
+        <h1>Live Home Scan with Gemini</h1>
+        <p class="subtitle">
+          Walk and talk naturally. The model interviews you, maps room relationships,
+          and builds a living home profile as you move.
+        </p>
+      </header>
+
+      <section class="control-panel card">
+        <div class="control-row">
+          <label for="modelInput">Live model</label>
+          <input id="modelInput" type="text" placeholder="gemini live model" />
+        </div>
+        <div class="control-row">
+          <label for="homeLabelInput">Home label</label>
+          <input id="homeLabelInput" type="text" placeholder="e.g. 2-bed condo in Austin" />
+        </div>
+        <div class="buttons">
+          <button id="startBtn" class="btn btn-primary">Start Live Scan</button>
+          <button id="stopBtn" class="btn btn-ghost" disabled>Stop</button>
+          <label class="toggle">
+            <input id="voiceToggle" type="checkbox" checked />
+            <span>Play model audio</span>
+          </label>
+          <label class="toggle">
+            <input id="debugToggle" type="checkbox" checked />
+            <span>Debug overlay</span>
+          </label>
+        </div>
+        <div class="status-line">
+          <span id="statusBadge" class="status status-idle">idle</span>
+          <span id="statusText">Ready to connect.</span>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="column">
+          <article class="card live-card">
+            <div class="card-head">
+              <h2>Walkthrough Feed</h2>
+              <span id="frameCounter">0 frames sent</span>
+            </div>
+            <video id="cameraVideo" autoplay playsinline muted></video>
+            <div id="interimSpeech" class="interim"></div>
+            <div class="text-input-row">
+              <input
+                id="manualInput"
+                type="text"
+                placeholder="Add extra context manually"
+              />
+              <button id="sendBtn" class="btn btn-secondary">Send</button>
+            </div>
+          </article>
+
+          <article class="card convo-card">
+            <div class="card-head">
+              <h2>Conversation</h2>
+              <span>Live Q&A</span>
+            </div>
+            <div id="conversation" class="conversation"></div>
+          </article>
+        </div>
+
+        <div class="column">
+          <article class="card map-card">
+            <div class="card-head">
+              <h2>Dynamic Floor Graph</h2>
+              <span id="locationPill">Location: unknown</span>
+            </div>
+            <canvas id="floorCanvas" width="920" height="620"></canvas>
+          </article>
+
+          <article class="card profile-card">
+            <div class="card-head">
+              <h2>Home Profile Build</h2>
+              <span id="statsPill">0 rooms</span>
+            </div>
+            <div id="roomsList" class="rooms-list"></div>
+            <div class="divider"></div>
+            <h3>Scan Timeline</h3>
+            <div id="timeline" class="timeline"></div>
+          </article>
+
+          <article id="debugCard" class="card debug-card">
+            <div class="card-head">
+              <h2>Debug Console</h2>
+              <span id="debugState">on</span>
+            </div>
+            <div id="debugMetrics" class="debug-metrics">No debug activity yet.</div>
+            <div id="debugLog" class="debug-log"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
