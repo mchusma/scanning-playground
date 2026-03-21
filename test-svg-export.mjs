@@ -321,6 +321,82 @@ console.log('\n▸ All room types');
   }
 }
 
+// ── Test: All path types render ────────────────────────────────────────────
+console.log('\n▸ All path types');
+{
+  const state = makeState();
+  const pathTypes = ['doorway', 'archway', 'hallway', 'stairs', 'open-plan', 'path'];
+  for (let i = 0; i < pathTypes.length; i++) {
+    addRoom(state, `Room ${i}A`, 'room', 0.8, [], 100 + i * 200, 200);
+    addRoom(state, `Room ${i}B`, 'room', 0.8, [], 100 + i * 200, 340);
+    state.edges.push({
+      key: `room-${i}a::room-${i}b`,
+      fromId: `room-${i}a`, toId: `room-${i}b`,
+      pathType: pathTypes[i],
+      anchorFromId: `room-${i}a`, anchorDirection: 'south',
+      updatedAt: Date.now(),
+    });
+  }
+
+  const svg = generateFloorPlanSVG(state, { debug: false });
+  assert(svg.includes('data-type="door"'), 'doorway renders as door');
+  assert(svg.includes('data-type="archway"'), 'archway renders');
+  assert(svg.includes('data-type="stairs"'), 'stairs renders');
+  assert(svg.includes('data-type="open-plan"'), 'open-plan renders');
+  writeFileSync(path.join(OUTPUT_DIR, 'all-path-types.svg'), svg);
+}
+
+// ── Test: Door wall spreading ─────────────────────────────────────────────
+console.log('\n▸ Door wall spreading');
+{
+  const state = makeState();
+  addRoom(state, 'Center', 'hallway', 0.9, [], 300, 300);
+  addRoom(state, 'North 1', 'bedroom', 0.8, [], 300, 160);
+  addRoom(state, 'North 2', 'bathroom', 0.8, [], 300, 20);
+  state.edges.push(
+    { key: 'center::north-1', fromId: 'center', toId: 'north-1', pathType: 'doorway', anchorFromId: 'center', anchorDirection: 'north', updatedAt: Date.now() },
+    { key: 'center::north-2', fromId: 'center', toId: 'north-2', pathType: 'doorway', anchorFromId: 'center', anchorDirection: 'north', updatedAt: Date.now() },
+  );
+
+  const svg = generateFloorPlanSVG(state, { debug: true });
+  // The two doors on center's north wall should be at different X positions
+  const northWallDoors = [...svg.matchAll(/translate\(([\d.]+),([\d.]+)\) rotate\(0\)" data-type="door"/g)];
+  assert(northWallDoors.length >= 2, `found ${northWallDoors.length} north wall doors (expect >=2)`);
+  if (northWallDoors.length >= 2) {
+    const x1 = parseFloat(northWallDoors[0][1]);
+    const x2 = parseFloat(northWallDoors[1][1]);
+    assert(Math.abs(x1 - x2) > 5, `north wall doors spread apart (x1=${x1}, x2=${x2})`);
+  }
+  writeFileSync(path.join(OUTPUT_DIR, 'door-spreading.svg'), svg);
+}
+
+// ── Test: Long room names truncation ──────────────────────────────────────
+console.log('\n▸ Long room names');
+{
+  const state = makeState();
+  addRoom(state, 'Very Long Room Name That Should Be Truncated', 'bedroom', 0.8, ['feature1', 'feature2', 'feature3', 'feature4'], 300, 200);
+
+  const svg = generateFloorPlanSVG(state, { debug: false });
+  assert(svg.includes('\u2026'), 'long name is truncated with ellipsis');
+  assert(!svg.includes('Very Long Room Name That Should Be Truncated'), 'full long name is NOT in output');
+  writeFileSync(path.join(OUTPUT_DIR, 'long-names.svg'), svg);
+}
+
+// ── Test: Compass heading rotation ────────────────────────────────────────
+console.log('\n▸ Compass headings');
+{
+  const state = makeState();
+  addRoom(state, 'Test', 'room', 0.8, [], 200, 200);
+
+  for (const heading of ['north', 'east', 'south', 'west']) {
+    state.heading = heading;
+    const svg = generateFloorPlanSVG(state, { debug: false });
+    assert(svg.includes('class="compass"'), `compass present for heading ${heading}`);
+    assert(svg.includes('>N<'), `N label present for heading ${heading}`);
+    assert(svg.includes('>E<'), `E label present for heading ${heading}`);
+  }
+}
+
 // ── Summary ───────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(50)}`);
 console.log(`Tests: ${testCount} | Passed: ${passCount} | Failed: ${failCount}`);

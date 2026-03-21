@@ -125,23 +125,41 @@ function getDoorPosition(roomX, roomY, wall, position) {
 
 /**
  * Render a door arc symbol (architectural quarter-circle)
+ * The white background rect "cuts" through the wall line visually
  */
 function renderDoorArc(x, y, angle, pathType) {
   const r = DOOR_ARC_RADIUS;
   const halfDoor = DOOR_WIDTH / 2;
 
-  // For archways/open-plan, use a dashed opening instead of a door arc
+  // White gap to "cut" the wall (drawn on top of room rect border)
+  const wallGap = `<rect x="${-halfDoor - 1}" y="${-WALL_THICKNESS}" width="${DOOR_WIDTH + 2}" height="${WALL_THICKNESS * 2 + 1}" fill="#f8faf9"/>`;
+
+  // For archways/open-plan, use a dashed opening
   if (pathType === 'archway' || pathType === 'open-plan') {
-    return `<g transform="translate(${x},${y}) rotate(${angle})">
-      <line x1="${-halfDoor}" y1="0" x2="${halfDoor}" y2="0" stroke="#888" stroke-width="2" stroke-dasharray="4,3" data-type="${escSvg(pathType)}"/>
+    return `<g transform="translate(${x},${y}) rotate(${angle})" data-type="${escSvg(pathType)}">
+      ${wallGap}
+      <line x1="${-halfDoor}" y1="0" x2="${halfDoor}" y2="0" stroke="#aaa" stroke-width="1.5" stroke-dasharray="3,2"/>
     </g>`;
   }
 
-  // Standard door: gap in wall + quarter-circle arc
+  // For stairs, use a different symbol
+  if (pathType === 'stairs') {
+    return `<g transform="translate(${x},${y}) rotate(${angle})" data-type="stairs">
+      ${wallGap}
+      <line x1="${-halfDoor}" y1="0" x2="${-halfDoor}" y2="-3" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+      <line x1="${halfDoor}" y1="0" x2="${halfDoor}" y2="-3" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+      <line x1="${-halfDoor + 4}" y1="-1" x2="${halfDoor - 4}" y2="-1" stroke="#888" stroke-width="0.8"/>
+      <line x1="${-halfDoor + 4}" y1="-4" x2="${halfDoor - 4}" y2="-4" stroke="#888" stroke-width="0.8"/>
+      <line x1="${-halfDoor + 4}" y1="-7" x2="${halfDoor - 4}" y2="-7" stroke="#888" stroke-width="0.8"/>
+    </g>`;
+  }
+
+  // Standard door: gap in wall + quarter-circle arc showing door swing
   return `<g transform="translate(${x},${y}) rotate(${angle})" data-type="door">
-    <line x1="${-halfDoor}" y1="0" x2="${-halfDoor}" y2="-2" stroke="#666" stroke-width="${WALL_THICKNESS}" stroke-linecap="round"/>
-    <line x1="${halfDoor}" y1="0" x2="${halfDoor}" y2="-2" stroke="#666" stroke-width="${WALL_THICKNESS}" stroke-linecap="round"/>
-    <path d="M ${-halfDoor} 0 A ${r} ${r} 0 0 1 ${-halfDoor + r} ${-r}" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="3,2"/>
+    ${wallGap}
+    <line x1="${-halfDoor}" y1="0" x2="${-halfDoor}" y2="-3" stroke="#555" stroke-width="2" stroke-linecap="round"/>
+    <line x1="${halfDoor}" y1="0" x2="${halfDoor}" y2="-3" stroke="#555" stroke-width="2" stroke-linecap="round"/>
+    <path d="M ${-halfDoor} 0 A ${r} ${r} 0 0 1 ${-halfDoor + r} ${-r}" fill="none" stroke="#888" stroke-width="0.8" stroke-dasharray="2,2"/>
   </g>`;
 }
 
@@ -177,12 +195,15 @@ function renderCompass(x, y, heading) {
   const rotation = headingAngles[heading] || 0;
 
   return `<g transform="translate(${x},${y})" class="compass">
-    <circle r="18" fill="white" stroke="#ccc" stroke-width="1" opacity="0.9"/>
+    <circle r="20" fill="white" stroke="#ccc" stroke-width="1" opacity="0.9"/>
     <g transform="rotate(${-rotation})">
-      <polygon points="0,-14 -4,-4 4,-4" fill="#d44" stroke="none"/>
-      <polygon points="0,14 -4,4 4,4" fill="#ccc" stroke="none"/>
-      <text x="0" y="-8" text-anchor="middle" font-size="6" font-weight="700" fill="#d44" font-family="sans-serif">N</text>
+      <polygon points="0,-16 -4,-6 4,-6" fill="#d44" stroke="none"/>
+      <polygon points="0,16 -4,6 4,6" fill="#ccc" stroke="none"/>
     </g>
+    <text x="0" y="${-16 - 5}" text-anchor="middle" font-size="8" font-weight="700" fill="#d44" font-family="sans-serif">N</text>
+    <text x="${20 + 5}" y="3" text-anchor="start" font-size="7" fill="#999" font-family="sans-serif">E</text>
+    <text x="0" y="${16 + 10}" text-anchor="middle" font-size="7" fill="#999" font-family="sans-serif">S</text>
+    <text x="${-20 - 5}" y="3" text-anchor="end" font-size="7" fill="#999" font-family="sans-serif">W</text>
   </g>`;
 }
 
@@ -262,22 +283,40 @@ export function generateFloorPlanSVG(homeState, options = {}) {
   // ── Background ──────────────────────────────────────────────────────────
   parts.push(`<rect x="${bounds.minX}" y="${bounds.minY}" width="${svgWidth}" height="${svgHeight}" fill="#f8faf9" rx="0"/>`);
 
-  // ── Grid pattern ────────────────────────────────────────────────────────
+  // ── Grid pattern (clamped to viewBox) ───────────────────────────────────
   const gridSize = 40;
-  const gridStartX = Math.floor(bounds.minX / gridSize) * gridSize;
-  const gridStartY = Math.floor(bounds.minY / gridSize) * gridSize;
+  const gridStartX = Math.ceil(bounds.minX / gridSize) * gridSize;
+  const gridStartY = Math.ceil(bounds.minY / gridSize) * gridSize;
+  const gridEndX = bounds.minX + svgWidth;
+  const gridEndY = bounds.minY + svgHeight;
   parts.push(`<g class="grid" opacity="0.15">`);
-  for (let gx = gridStartX; gx <= bounds.maxX; gx += gridSize) {
-    parts.push(`<line x1="${gx}" y1="${bounds.minY}" x2="${gx}" y2="${bounds.maxY}" stroke="#0a6a60" stroke-width="0.5"/>`);
+  for (let gx = gridStartX; gx <= gridEndX; gx += gridSize) {
+    parts.push(`<line x1="${gx}" y1="${bounds.minY}" x2="${gx}" y2="${gridEndY}" stroke="#0a6a60" stroke-width="0.5"/>`);
   }
-  for (let gy = gridStartY; gy <= bounds.maxY; gy += gridSize) {
-    parts.push(`<line x1="${bounds.minX}" y1="${gy}" x2="${bounds.maxX}" y2="${gy}" stroke="#0a6a60" stroke-width="0.5"/>`);
+  for (let gy = gridStartY; gy <= gridEndY; gy += gridSize) {
+    parts.push(`<line x1="${bounds.minX}" y1="${gy}" x2="${gridEndX}" y2="${gy}" stroke="#0a6a60" stroke-width="0.5"/>`);
   }
   parts.push(`</g>`);
 
   // ── Title ───────────────────────────────────────────────────────────────
   if (title) {
     parts.push(`<text x="${bounds.minX + 12}" y="${bounds.minY + 20}" class="title-text">${escSvg(title)}</text>`);
+  }
+
+  // ── Pre-compute door positions per wall to avoid overlaps ────────────────
+  // Track how many doors are on each wall of each room, so we can spread them
+  const wallDoorCounts = new Map(); // "roomId:wall" → count
+  function getWallKey(roomId, wall) { return `${roomId}:${wall}`; }
+  function nextDoorPosition(roomId, wall) {
+    const key = getWallKey(roomId, wall);
+    const count = wallDoorCounts.get(key) || 0;
+    wallDoorCounts.set(key, count + 1);
+    // Spread doors evenly: for 1 door → 0.5, for 2 → 0.35/0.65, for 3 → 0.25/0.5/0.75
+    const total = count + 1;
+    // We don't know total ahead of time, so use a sliding approach
+    // Position based on order: 0.5, 0.3, 0.7, 0.2, 0.8, ...
+    const positions = [0.5, 0.3, 0.7, 0.2, 0.8, 0.15, 0.85];
+    return positions[count] ?? 0.5;
   }
 
   // ── Edges (connections between rooms) ───────────────────────────────────
@@ -291,27 +330,33 @@ export function generateFloorPlanSVG(homeState, options = {}) {
       parts.push(`<!-- Edge: ${edge.fromId} -> ${edge.toId} | pathType: ${edge.pathType} | anchor: ${edge.anchorFromId}/${edge.anchorDirection} -->`);
     }
 
-    // Draw connection line (thin, behind walls)
-    const midX = (fromRoom.x + toRoom.x) / 2;
-    const midY = (fromRoom.y + toRoom.y) / 2;
+    // Door position on the "from" room wall (spread if multiple doors on same wall)
+    const fromDoor = getDoorWall(fromRoom, toRoom, edge);
+    const fromDoorPosition = nextDoorPosition(fromRoom.id, fromDoor.wall);
+    const fromDoorPos = getDoorPosition(fromRoom.x, fromRoom.y, fromDoor.wall, fromDoorPosition);
 
-    // Only draw the line segment that's outside the room rectangles
-    // For now, draw a subtle dashed line between room centers
-    parts.push(`<line x1="${fromRoom.x}" y1="${fromRoom.y}" x2="${toRoom.x}" y2="${toRoom.y}" stroke="rgba(24,103,178,0.2)" stroke-width="1" stroke-dasharray="4,4" data-edge="${escSvg(edge.key)}"/>`);
+    // Door position on the "to" room wall
+    const toDoor = getDoorWall(toRoom, fromRoom, edge);
+    const toDoorPosition = nextDoorPosition(toRoom.id, toDoor.wall);
+    const toDoorPos = getDoorPosition(toRoom.x, toRoom.y, toDoor.wall, toDoorPosition);
 
-    // Edge label at midpoint
+    // Draw connection line between the two door positions (not room centers)
+    parts.push(`<line x1="${fromDoorPos.x}" y1="${fromDoorPos.y}" x2="${toDoorPos.x}" y2="${toDoorPos.y}" stroke="rgba(24,103,178,0.15)" stroke-width="1" stroke-dasharray="4,4" data-edge="${escSvg(edge.key)}"/>`);
+
+    // Edge label — position near the "from" door, offset away from the wall
     if (edge.pathType && edge.pathType !== 'path') {
-      const dirLabel = edge.anchorDirection ? ` ${edge.anchorDirection}` : '';
-      parts.push(`<text x="${midX}" y="${midY - 6}" text-anchor="middle" class="edge-label">${escSvg(edge.pathType)}${escSvg(dirLabel)}</text>`);
+      const labelX = (fromDoorPos.x + toDoorPos.x) / 2;
+      const labelY = (fromDoorPos.y + toDoorPos.y) / 2;
+      // Offset label perpendicular to the connection line
+      const dx = toDoorPos.x - fromDoorPos.x;
+      const dy = toDoorPos.y - fromDoorPos.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const offsetX = (-dy / len) * 10;
+      const offsetY = (dx / len) * 10;
+      parts.push(`<text x="${labelX + offsetX}" y="${labelY + offsetY}" text-anchor="middle" class="edge-label">${escSvg(edge.pathType)}</text>`);
     }
 
-    // Door symbols on both rooms
-    const fromDoor = getDoorWall(fromRoom, toRoom, edge);
-    const toDoor = getDoorWall(toRoom, fromRoom, edge);
-
-    const fromDoorPos = getDoorPosition(fromRoom.x, fromRoom.y, fromDoor.wall, fromDoor.position);
-    const toDoorPos = getDoorPosition(toRoom.x, toRoom.y, toDoor.wall, toDoor.position);
-
+    // Door symbols on both room walls
     parts.push(renderDoorArc(fromDoorPos.x, fromDoorPos.y, fromDoorPos.angle, edge.pathType));
     parts.push(renderDoorArc(toDoorPos.x, toDoorPos.y, toDoorPos.angle, edge.pathType));
   }
@@ -345,26 +390,40 @@ export function generateFloorPlanSVG(homeState, options = {}) {
       parts.push(`</rect>`);
     }
 
-    // Room icon (architectural symbol)
+    // Layout: icon (top-left corner), name (centered), type+confidence, features
+    // All text is centered on room.x to avoid overflow on long names
     const iconKey = room.roomType?.toLowerCase().trim();
     const iconSvg = ICON_PATHS[iconKey];
+
+    // Vertical layout depends on whether we have features
+    const hasFeatures = room.features && room.features.length > 0;
+    const nameY = hasFeatures ? room.y - 12 : room.y - 8;
+    const typeY = hasFeatures ? room.y + 2 : room.y + 6;
+    const featY = room.y + 14;
+
+    // Room icon (small, in top-left corner of room)
     if (iconSvg) {
-      parts.push(`<g transform="translate(${room.x - halfW + 16}, ${room.y - 4})" color="${color.stroke}" opacity="0.6">${iconSvg}</g>`);
+      parts.push(`<g transform="translate(${rx + 14}, ${ry + 14})" color="${color.stroke}" opacity="0.5">${iconSvg}</g>`);
     }
 
-    // Room name
-    const labelX = iconSvg ? room.x + 6 : room.x;
-    parts.push(`<text x="${labelX}" y="${room.y - 8}" text-anchor="middle" class="room-label">${escSvg(room.name)}</text>`);
+    // Room name — always centered on room, with truncation for long names
+    const maxLabelLen = Math.floor(ROOM_WIDTH / 8);
+    const displayName = room.name.length > maxLabelLen ? room.name.slice(0, maxLabelLen - 1) + '\u2026' : room.name;
+    parts.push(`<text x="${room.x}" y="${nameY}" text-anchor="middle" class="room-label">${escSvg(displayName)}</text>`);
 
     // Room type + confidence
     const confidence = Math.round((room.confidence || 0) * 100);
-    parts.push(`<text x="${labelX}" y="${room.y + 6}" text-anchor="middle" class="room-type">${escSvg(room.roomType || 'room')} \u00B7 ${confidence}%</text>`);
+    parts.push(`<text x="${room.x}" y="${typeY}" text-anchor="middle" class="room-type">${escSvg(room.roomType || 'room')} \u00B7 ${confidence}%</text>`);
 
-    // Features (up to 3, truncated)
-    if (room.features && room.features.length > 0) {
-      const featureText = room.features.slice(0, 3).join(', ');
-      const truncated = room.features.length > 3 ? ` +${room.features.length - 3}` : '';
-      parts.push(`<text x="${labelX}" y="${room.y + 18}" text-anchor="middle" class="room-features">${escSvg(featureText + truncated)}</text>`);
+    // Features (up to 2, truncated to fit)
+    if (hasFeatures) {
+      const maxFeatLen = Math.floor(ROOM_WIDTH / 6);
+      let featureText = room.features.slice(0, 2).join(', ');
+      const extra = room.features.length > 2 ? ` +${room.features.length - 2}` : '';
+      if (featureText.length + extra.length > maxFeatLen) {
+        featureText = featureText.slice(0, maxFeatLen - extra.length - 1) + '\u2026';
+      }
+      parts.push(`<text x="${room.x}" y="${featY}" text-anchor="middle" class="room-features">${escSvg(featureText + extra)}</text>`);
     }
 
     // Location marker
