@@ -1,4 +1,5 @@
 import { GoogleGenAI, Modality } from '/genai/index.patched.mjs';
+import { generateFloorPlanSVG, svgToPng, downloadFile } from './svg-export.js';
 
 const els = {
   modelInput: document.getElementById('modelInput'),
@@ -24,6 +25,8 @@ const els = {
   debugState: document.getElementById('debugState'),
   debugMetrics: document.getElementById('debugMetrics'),
   debugLog: document.getElementById('debugLog'),
+  exportSvgBtn: document.getElementById('exportSvgBtn'),
+  exportPngBtn: document.getElementById('exportPngBtn'),
 };
 
 const floorCtx = els.floorCanvas.getContext('2d');
@@ -2026,6 +2029,31 @@ function bindEvents() {
     els.debugToggle.addEventListener('change', () => {
       state.debug.enabled = Boolean(els.debugToggle.checked);
       renderDebugPanel();
+    });
+  }
+
+  if (els.exportSvgBtn) {
+    els.exportSvgBtn.addEventListener('click', () => {
+      const svg = generateFloorPlanSVG(state.home, { debug: state.debug.enabled, animate: false });
+      downloadFile(svg, `floor-plan-${Date.now()}.svg`);
+      debugLog('export', 'Downloaded SVG floor plan');
+    });
+  }
+
+  if (els.exportPngBtn) {
+    els.exportPngBtn.addEventListener('click', async () => {
+      try {
+        const svg = generateFloorPlanSVG(state.home, { debug: false, animate: false });
+        const pngUrl = await svgToPng(svg, 2);
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = `floor-plan-${Date.now()}.png`;
+        a.click();
+        debugLog('export', 'Downloaded PNG floor plan');
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'PNG export failed';
+        debugLog('export-error', msg);
+      }
     });
   }
 
