@@ -386,6 +386,11 @@
       },
     };
 
+    // ── HTML escaping for safe innerHTML ────────────────────────────────
+    function escHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     // ── Rendering ─────────────────────────────────────────────────────────
     let lastSvgString = '';
     let activeTab = 'inline';
@@ -431,7 +436,7 @@
         const current = sel.value;
         sel.innerHTML = sel.id === 'locationSelect' ? '<option value="">None</option>' : '';
         for (const r of rooms) {
-          sel.innerHTML += `<option value="${r.name}" ${r.name === current ? 'selected' : ''}>${r.name}</option>`;
+          sel.innerHTML += `<option value="${escHtml(r.name)}" ${r.name === current ? 'selected' : ''}>${escHtml(r.name)}</option>`;
         }
       }
     }
@@ -446,14 +451,14 @@
       for (const [id, room] of homeState.rooms) {
         const isCurrent = id === homeState.locationRoomId;
         roomListEl.innerHTML += `<div class="room-item ${isCurrent ? 'is-current' : ''}">
-          <span>${room.name} ${isCurrent ? '(here)' : ''}</span>
-          <span class="room-meta">${room.roomType} · ${Math.round(room.confidence * 100)}% · (${Math.round(room.x)},${Math.round(room.y)})</span>
+          <span>${escHtml(room.name)} ${isCurrent ? '(here)' : ''}</span>
+          <span class="room-meta">${escHtml(room.roomType)} · ${Math.round(room.confidence * 100)}% · (${Math.round(room.x)},${Math.round(room.y)})</span>
         </div>`;
       }
 
       edgeListEl.innerHTML = '';
       for (const edge of homeState.edges) {
-        edgeListEl.innerHTML += `<div class="edge-item">${edge.fromId} → ${edge.toId} <span class="room-meta">${edge.pathType}${edge.anchorDirection ? ' · ' + edge.anchorDirection : ''}</span></div>`;
+        edgeListEl.innerHTML += `<div class="edge-item">${escHtml(edge.fromId)} → ${escHtml(edge.toId)} <span class="room-meta">${escHtml(edge.pathType)}${edge.anchorDirection ? ' · ' + escHtml(edge.anchorDirection) : ''}</span></div>`;
       }
     }
 

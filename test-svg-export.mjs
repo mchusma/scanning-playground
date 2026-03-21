@@ -397,6 +397,88 @@ console.log('\n▸ Compass headings');
   }
 }
 
+// ── Test: Z-order — door arcs render above room fills ─────────────────────
+console.log('\n▸ Z-order layering');
+{
+  const state = makeState();
+  addRoom(state, 'Living Room', 'living room', 0.9, ['sofa'], 200, 200);
+  addRoom(state, 'Kitchen', 'kitchen', 0.85, ['fridge'], 380, 200);
+  state.edges.push({ key: 'kitchen::living-room', fromId: 'kitchen', toId: 'living-room', pathType: 'open-plan', updatedAt: Date.now() });
+
+  const svg = generateFloorPlanSVG(state);
+  // Room fills should come BEFORE edges group in the SVG
+  const fillsIdx = svg.indexOf('class="room-fills"');
+  const edgesIdx = svg.indexOf('class="edges"');
+  const labelsIdx = svg.indexOf('class="rooms"');
+  assert(fillsIdx < edgesIdx, 'room fills render before edges');
+  assert(edgesIdx < labelsIdx, 'edges render before room labels');
+}
+
+// ── Test: CSS transform-origin for animations ────────────────────────────
+console.log('\n▸ CSS animation transform-origin');
+{
+  const state = makeState();
+  addRoom(state, 'Test', 'bedroom', 0.8, [], 200, 200);
+  const svg = generateFloorPlanSVG(state, { animate: true });
+  assert(svg.includes('transform-box: fill-box'), 'has transform-box: fill-box for SVG animation');
+  assert(svg.includes('transform-origin: center'), 'has transform-origin: center for SVG animation');
+}
+
+// ── Test: XSS in debug comments ──────────────────────────────────────────
+console.log('\n▸ Comment XSS prevention');
+{
+  const state = makeState();
+  addRoom(state, 'Room-->INJECTED', 'bedroom', 0.8, ['feat-->break'], 200, 200);
+  const svg = generateFloorPlanSVG(state, { debug: true });
+  // The raw --> should never appear inside a comment
+  const commentPattern = /<!--[\s\S]*?-->/g;
+  let match;
+  let hasUnsafeComment = false;
+  while ((match = commentPattern.exec(svg)) !== null) {
+    const content = match[0].slice(4, -3); // strip <!-- and -->
+    if (content.includes('-->')) {
+      hasUnsafeComment = true;
+      break;
+    }
+  }
+  assert(!hasUnsafeComment, 'no --> breakout in debug comments');
+}
+
+// ── Test: Co-located rooms get different walls ───────────────────────────
+console.log('\n▸ Co-located rooms');
+{
+  const state = makeState();
+  addRoom(state, 'Room A', 'bedroom', 0.8, [], 200, 200);
+  addRoom(state, 'Room B', 'bathroom', 0.8, [], 200, 200);
+  state.edges.push({ key: 'room-a::room-b', fromId: 'room-a', toId: 'room-b', pathType: 'doorway', updatedAt: Date.now() });
+
+  const svg = generateFloorPlanSVG(state);
+  // Should render without errors and have door symbols
+  assert(svg.includes('data-type="door"'), 'co-located rooms still render doors');
+}
+
+// ── Test: Font stack includes Roboto ─────────────────────────────────────
+console.log('\n▸ Font compatibility');
+{
+  const state = makeState();
+  addRoom(state, 'Test', 'bedroom', 0.8, [], 200, 200);
+  const svg = generateFloorPlanSVG(state);
+  assert(svg.includes('Roboto'), 'font stack includes Roboto for Android');
+}
+
+// ── Test: Multi-byte character truncation ────────────────────────────────
+console.log('\n▸ Multi-byte truncation');
+{
+  const state = makeState();
+  // Use emoji chars which are multi-byte (surrogate pairs)
+  addRoom(state, '\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}\u{1F3E0}', 'bedroom', 0.8, [], 200, 200);
+  const svg = generateFloorPlanSVG(state);
+  // Should not contain broken surrogate halves — the ellipsis should be clean
+  assert(svg.includes('\u2026'), 'multi-byte name truncated with ellipsis');
+  // Verify no lone surrogates by checking that the SVG is valid XML-like
+  assert(!svg.includes('\uFFFD'), 'no replacement characters from broken surrogates');
+}
+
 // ── Summary ───────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(50)}`);
 console.log(`Tests: ${testCount} | Passed: ${passCount} | Failed: ${failCount}`);

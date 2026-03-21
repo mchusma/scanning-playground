@@ -45,6 +45,7 @@ const WALL_THICKNESS = 3;
 const DOOR_WIDTH = 28;
 const DOOR_ARC_RADIUS = 24;
 const PADDING = 40;
+const BG_COLOR = '#f8faf9';
 
 // ── SVG icon paths (simple architectural symbols, no emoji) ─────────────────
 const ICON_PATHS = {
@@ -67,6 +68,13 @@ function escSvg(text) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+/**
+ * Escape text for safe SVG comment embedding (prevent --> breakout)
+ */
+function escComment(text) {
+  return String(text).replace(/-->/g, '--\\>').replace(/--/g, '- -');
 }
 
 /**
@@ -95,6 +103,10 @@ function getDoorWall(room, otherRoom, edge) {
   // Fall back to geometric direction
   const dx = otherRoom.x - room.x;
   const dy = otherRoom.y - room.y;
+  // If rooms are co-located, use a stable fallback based on ID comparison
+  if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
+    return { wall: room.id < otherRoom.id ? 'east' : 'west', position: 0.5 };
+  }
   if (Math.abs(dx) > Math.abs(dy)) {
     return { wall: dx > 0 ? 'east' : 'west', position: 0.5 };
   }
@@ -131,8 +143,8 @@ function renderDoorArc(x, y, angle, pathType) {
   const r = DOOR_ARC_RADIUS;
   const halfDoor = DOOR_WIDTH / 2;
 
-  // White gap to "cut" the wall (drawn on top of room rect border)
-  const wallGap = `<rect x="${-halfDoor - 1}" y="${-WALL_THICKNESS}" width="${DOOR_WIDTH + 2}" height="${WALL_THICKNESS * 2 + 1}" fill="#f8faf9"/>`;
+  // Background-colored gap to "cut" the wall (drawn on top of room rect border)
+  const wallGap = `<rect x="${-halfDoor - 1}" y="${-WALL_THICKNESS}" width="${DOOR_WIDTH + 2}" height="${WALL_THICKNESS * 2 + 1}" fill="${BG_COLOR}"/>`;
 
   // For archways/open-plan, use a dashed opening
   if (pathType === 'archway' || pathType === 'open-plan') {
@@ -248,6 +260,13 @@ export function generateFloorPlanSVG(homeState, options = {}) {
   const bounds = computeBounds(rooms);
   const svgWidth = Math.max(400, bounds.width);
   const svgHeight = Math.max(300, bounds.height);
+  // Center content when bounds are smaller than minimums
+  if (svgWidth > bounds.width) {
+    bounds.minX -= (svgWidth - bounds.width) / 2;
+  }
+  if (svgHeight > bounds.height) {
+    bounds.minY -= (svgHeight - bounds.height) / 2;
+  }
 
   const parts = [];
 
@@ -259,23 +278,23 @@ export function generateFloorPlanSVG(homeState, options = {}) {
     parts.push(`<!-- SVG Floor Plan Debug Info -->`);
     parts.push(`<!-- Generated: ${new Date().toISOString()} -->`);
     parts.push(`<!-- Rooms: ${rooms.length}, Edges: ${edges.length} -->`);
-    parts.push(`<!-- Bounds: ${JSON.stringify(bounds)} -->`);
-    parts.push(`<!-- Location: ${locationRoomId || 'none'}, Heading: ${heading} -->`);
+    parts.push(`<!-- Bounds: ${escComment(JSON.stringify(bounds))} -->`);
+    parts.push(`<!-- Location: ${escComment(locationRoomId || 'none')}, Heading: ${escComment(heading)} -->`);
   }
 
   // ── Embedded styles ─────────────────────────────────────────────────────
   parts.push(`<defs><style>
-    .room-label { font-family: -apple-system, 'Segoe UI', sans-serif; font-weight: 700; font-size: 13px; fill: #1a3330; }
-    .room-type { font-family: -apple-system, 'Segoe UI', sans-serif; font-weight: 500; font-size: 10px; fill: #5a8880; }
-    .room-features { font-family: -apple-system, 'Segoe UI', sans-serif; font-weight: 400; font-size: 9px; fill: #7a9a94; }
-    .edge-label { font-family: -apple-system, 'Segoe UI', sans-serif; font-weight: 500; font-size: 9px; fill: #4a7a90; }
-    .title-text { font-family: -apple-system, 'Segoe UI', sans-serif; font-weight: 700; font-size: 16px; fill: #1a3330; }
+    .room-label { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; font-size: 13px; fill: #1a3330; }
+    .room-type { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 500; font-size: 10px; fill: #5a8880; }
+    .room-features { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 400; font-size: 9px; fill: #7a9a94; }
+    .edge-label { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 500; font-size: 9px; fill: #4a7a90; }
+    .title-text { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; font-size: 16px; fill: #1a3330; }
     ${debug ? `
     .debug-text { font-family: monospace; font-size: 8px; fill: #c44; opacity: 0.8; }
     .debug-coord { font-family: monospace; font-size: 7px; fill: #888; }
     ` : ''}
     ${animate ? `
-    .room-rect { animation: roomFadeIn 0.5s ease-out both; }
+    .room-rect { animation: roomFadeIn 0.5s ease-out both; transform-box: fill-box; transform-origin: center; }
     @keyframes roomFadeIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
     ` : ''}
   </style></defs>`);
@@ -319,7 +338,22 @@ export function generateFloorPlanSVG(homeState, options = {}) {
     return positions[count] ?? 0.5;
   }
 
-  // ── Edges (connections between rooms) ───────────────────────────────────
+  // ── Layer 1: Room fills (bottom layer) ──────────────────────────────────
+  // Room rects are drawn first so door arcs render ON TOP of walls
+  parts.push(`<g class="room-fills">`);
+  for (const room of rooms) {
+    const color = getRoomColor(room.roomType);
+    const isCurrent = room.id === locationRoomId;
+    const halfW = ROOM_WIDTH / 2;
+    const halfH = ROOM_HEIGHT / 2;
+    const rx = room.x - halfW;
+    const ry = room.y - halfH;
+
+    parts.push(`<rect x="${rx}" y="${ry}" width="${ROOM_WIDTH}" height="${ROOM_HEIGHT}" rx="3" fill="${color.fill}" stroke="${isCurrent ? '#0f9d87' : color.stroke}" stroke-width="${isCurrent ? WALL_THICKNESS + 1 : WALL_THICKNESS}" class="room-rect"/>`);
+  }
+  parts.push(`</g>`);
+
+  // ── Layer 2: Edges + door symbols (middle layer) ──────────────────────
   parts.push(`<g class="edges">`);
   for (const edge of edges) {
     const fromRoom = homeState.rooms.get(edge.fromId);
@@ -327,7 +361,7 @@ export function generateFloorPlanSVG(homeState, options = {}) {
     if (!fromRoom || !toRoom) continue;
 
     if (debug) {
-      parts.push(`<!-- Edge: ${edge.fromId} -> ${edge.toId} | pathType: ${edge.pathType} | anchor: ${edge.anchorFromId}/${edge.anchorDirection} -->`);
+      parts.push(`<!-- Edge: ${escComment(edge.fromId)} -> ${escComment(edge.toId)} | pathType: ${escComment(edge.pathType)} | anchor: ${escComment(edge.anchorFromId)}/${escComment(edge.anchorDirection)} -->`);
     }
 
     // Door position on the "from" room wall (spread if multiple doors on same wall)
@@ -362,7 +396,7 @@ export function generateFloorPlanSVG(homeState, options = {}) {
   }
   parts.push(`</g>`);
 
-  // ── Rooms ───────────────────────────────────────────────────────────────
+  // ── Layer 3: Room labels, icons, markers (top layer) ──────────────────
   parts.push(`<g class="rooms">`);
   for (const room of rooms) {
     const color = getRoomColor(room.roomType);
@@ -373,13 +407,10 @@ export function generateFloorPlanSVG(homeState, options = {}) {
     const ry = room.y - halfH;
 
     if (debug) {
-      parts.push(`<!-- Room: ${room.id} | type: ${room.roomType} | pos: (${Math.round(room.x)}, ${Math.round(room.y)}) | confidence: ${room.confidence} | features: [${room.features.join(', ')}] -->`);
+      parts.push(`<!-- Room: ${escComment(room.id)} | type: ${escComment(room.roomType)} | pos: (${Math.round(room.x)}, ${Math.round(room.y)}) | confidence: ${room.confidence} | features: [${escComment(room.features.join(', '))}] -->`);
     }
 
     parts.push(`<g class="room" data-room-id="${escSvg(room.id)}" data-room-type="${escSvg(room.roomType || 'room')}">`);
-
-    // Room fill
-    parts.push(`<rect x="${rx}" y="${ry}" width="${ROOM_WIDTH}" height="${ROOM_HEIGHT}" rx="3" fill="${color.fill}" stroke="${isCurrent ? '#0f9d87' : color.stroke}" stroke-width="${isCurrent ? WALL_THICKNESS + 1 : WALL_THICKNESS}" class="room-rect"/>`);
 
     // Current location highlight
     if (isCurrent) {
@@ -391,7 +422,6 @@ export function generateFloorPlanSVG(homeState, options = {}) {
     }
 
     // Layout: icon (top-left corner), name (centered), type+confidence, features
-    // All text is centered on room.x to avoid overflow on long names
     const iconKey = room.roomType?.toLowerCase().trim();
     const iconSvg = ICON_PATHS[iconKey];
 
@@ -408,7 +438,8 @@ export function generateFloorPlanSVG(homeState, options = {}) {
 
     // Room name — always centered on room, with truncation for long names
     const maxLabelLen = Math.floor(ROOM_WIDTH / 8);
-    const displayName = room.name.length > maxLabelLen ? room.name.slice(0, maxLabelLen - 1) + '\u2026' : room.name;
+    const nameChars = Array.from(room.name);
+    const displayName = nameChars.length > maxLabelLen ? nameChars.slice(0, maxLabelLen - 1).join('') + '\u2026' : room.name;
     parts.push(`<text x="${room.x}" y="${nameY}" text-anchor="middle" class="room-label">${escSvg(displayName)}</text>`);
 
     // Room type + confidence
@@ -459,11 +490,11 @@ export function generateFloorPlanSVG(homeState, options = {}) {
     parts.push(`<!-- === STATE DUMP === -->`);
     parts.push(`<!-- Rooms: -->`);
     for (const room of rooms) {
-      parts.push(`<!-- ${room.id}: ${JSON.stringify({ x: Math.round(room.x), y: Math.round(room.y), type: room.roomType, confidence: room.confidence, features: room.features })} -->`);
+      parts.push(`<!-- ${escComment(room.id)}: ${escComment(JSON.stringify({ x: Math.round(room.x), y: Math.round(room.y), type: room.roomType, confidence: room.confidence, features: room.features }))} -->`);
     }
     parts.push(`<!-- Edges: -->`);
     for (const edge of edges) {
-      parts.push(`<!-- ${edge.key}: ${JSON.stringify({ pathType: edge.pathType, anchorFrom: edge.anchorFromId, anchorDir: edge.anchorDirection })} -->`);
+      parts.push(`<!-- ${escComment(edge.key)}: ${escComment(JSON.stringify({ pathType: edge.pathType, anchorFrom: edge.anchorFromId, anchorDir: edge.anchorDirection }))} -->`);
     }
   }
 
