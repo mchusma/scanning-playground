@@ -281,8 +281,26 @@
         const vectors = { north: {x:0,y:-1}, south: {x:0,y:1}, east: {x:1,y:0}, west: {x:-1,y:0} };
         const v = vectors[direction];
         if (v) {
-          to.x = from.x + v.x * 180;
-          to.y = from.y + v.y * 140;
+          let nx = from.x + v.x * 180;
+          let ny = from.y + v.y * 140;
+          // Nudge if another room already occupies that spot — keep pushing in same direction
+          let attempts = 0;
+          while (attempts < 5) {
+            let collision = false;
+            for (const [rid, r] of homeState.rooms) {
+              if (rid !== toId && Math.abs(r.x - nx) < 10 && Math.abs(r.y - ny) < 10) {
+                collision = true;
+                break;
+              }
+            }
+            if (!collision) break;
+            // Offset perpendicular to the direction of travel
+            nx += v.y !== 0 ? 180 : 0;
+            ny += v.x !== 0 ? 140 : 0;
+            attempts++;
+          }
+          to.x = nx;
+          to.y = ny;
         }
       }
 
@@ -349,15 +367,22 @@
         addRoom('Bedroom 3', 'bedroom', 0.75, ['twin beds', 'desk']);
         addRoom('Primary Bath', 'bathroom', 0.85, ['shower', 'tub', 'double vanity']);
         addRoom('Hall Bath', 'bathroom', 0.8, ['shower', 'toilet']);
-        addEdge('Entryway', 'Hallway', 'archway', 'north');
-        addEdge('Hallway', 'Living Room', 'archway', 'west');
-        addEdge('Living Room', 'Kitchen', 'open-plan', 'north');
+        // Layout:
+        // Entryway -- Living Room -- Kitchen -- Dining Room
+        //                  |
+        //               Hallway -- PrimBed -- PrimBath
+        //                  |
+        //              Bedroom 2 -- Bedroom 3 -- Hall Bath
+        addEdge('Entryway', 'Living Room', 'archway', 'east');
+        addEdge('Living Room', 'Kitchen', 'open-plan', 'east');
         addEdge('Kitchen', 'Dining Room', 'archway', 'east');
+        addEdge('Living Room', 'Hallway', 'archway', 'south');
         addEdge('Hallway', 'Primary Bedroom', 'doorway', 'east');
+        addEdge('Primary Bedroom', 'Primary Bath', 'doorway', 'east');
         addEdge('Hallway', 'Bedroom 2', 'doorway', 'south');
-        addEdge('Hallway', 'Bedroom 3', 'doorway', 'north');
-        addEdge('Primary Bedroom', 'Primary Bath', 'doorway', 'south');
-        addEdge('Hallway', 'Hall Bath', 'doorway', 'east');
+        addEdge('Bedroom 2', 'Bedroom 3', 'doorway', 'east');
+        addEdge('Bedroom 3', 'Hall Bath', 'doorway', 'east');
+        addEdge('Hallway', 'Kitchen', 'doorway');
         homeState.locationRoomId = 'living-room';
         homeState.heading = 'east';
       },
@@ -366,9 +391,9 @@
         addRoom('Garage', 'garage', 0.9, ['2 cars', 'workbench']);
         addRoom('Laundry Room', 'laundry room', 0.8, ['washer', 'dryer']);
         addRoom('Pantry', 'pantry', 0.7, ['shelving']);
-        addEdge('Entryway', 'Garage', 'doorway', 'south');
-        addEdge('Kitchen', 'Pantry', 'doorway', 'west');
-        addEdge('Kitchen', 'Laundry Room', 'doorway', 'south');
+        addEdge('Entryway', 'Garage', 'doorway', 'west');
+        addEdge('Kitchen', 'Pantry', 'doorway', 'north');
+        addEdge('Hallway', 'Laundry Room', 'doorway', 'west');
       },
       stress: () => {
         const types = ['bedroom', 'bathroom', 'kitchen', 'living room', 'office', 'hallway', 'closet', 'pantry'];
