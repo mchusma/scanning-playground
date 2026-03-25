@@ -479,6 +479,78 @@ function discoverTests(filter) {
   return tests;
 }
 
+// ── Asset Inventory ──────────────────────────────────────────────────────
+
+function generateAssetInventory(homeState, testName) {
+  const rooms = [...homeState.rooms.values()];
+  const edges = homeState.edges;
+
+  // Categorize features
+  const CATEGORIES = {
+    'Appliances': ['refrigerator', 'fridge', 'oven', 'stove', 'microwave', 'dishwasher', 'washer', 'dryer', 'garbage disposal'],
+    'Plumbing': ['sink', 'toilet', 'shower', 'bathtub', 'tub', 'faucet'],
+    'Furniture': ['sofa', 'couch', 'bed', 'desk', 'table', 'chair', 'dresser', 'nightstand', 'bookshelf', 'cabinet', 'shelving'],
+    'Electronics': ['tv', 'television', 'light fixture', 'lamp', 'recessed lighting', 'ceiling fan'],
+    'Fixtures': ['countertop', 'counter', 'island', 'fireplace', 'window', 'door', 'mirror', 'railing'],
+    'Storage': ['closet', 'pantry', 'cabinet', 'shelving', 'hanging rods'],
+  };
+
+  function categorize(feature) {
+    const lower = feature.toLowerCase().replace(/\s*\([^)]*\)\s*/g, '').trim();
+    for (const [cat, keywords] of Object.entries(CATEGORIES)) {
+      if (keywords.some(k => lower.includes(k))) return cat;
+    }
+    return 'Other';
+  }
+
+  const inventory = {
+    name: testName,
+    timestamp: new Date().toISOString(),
+    summary: {
+      totalRooms: rooms.length,
+      totalConnections: edges.length,
+      totalFeatures: rooms.reduce((sum, r) => sum + r.features.length, 0),
+    },
+    rooms: rooms.map(r => ({
+      name: r.name,
+      type: r.roomType,
+      confidence: r.confidence,
+      features: r.features,
+    })),
+    connections: edges.map(e => ({
+      from: homeState.rooms.get(e.fromId)?.name || e.fromId,
+      to: homeState.rooms.get(e.toId)?.name || e.toId,
+      type: e.pathType,
+    })),
+    assetsByCategory: {},
+    assetsByRoom: {},
+  };
+
+  // Build asset categorization
+  for (const room of rooms) {
+    const roomAssets = [];
+    for (const feature of room.features) {
+      const cat = categorize(feature);
+      const clean = feature.replace(/\s*\([^)]*\)\s*$/, '').trim();
+      roomAssets.push({ name: clean, category: cat, room: room.name });
+
+      if (!inventory.assetsByCategory[cat]) inventory.assetsByCategory[cat] = [];
+      inventory.assetsByCategory[cat].push({ name: clean, room: room.name });
+    }
+    if (roomAssets.length > 0) {
+      inventory.assetsByRoom[room.name] = roomAssets;
+    }
+  }
+
+  // Summary counts
+  inventory.summary.byCategory = {};
+  for (const [cat, items] of Object.entries(inventory.assetsByCategory)) {
+    inventory.summary.byCategory[cat] = items.length;
+  }
+
+  return inventory;
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -534,6 +606,10 @@ async function main() {
       // Generate SVG
       const svg = generateFloorPlanSVG(homeState, { debug: true, animate: true, title: `${test.name} Floor Plan` });
       writeFileSync(path.join(OUTPUT_DIR, `${test.name}-floorplan.svg`), svg);
+
+      // Generate asset inventory
+      const inventory = generateAssetInventory(homeState, test.name);
+      writeFileSync(path.join(OUTPUT_DIR, `${test.name}-inventory.json`), JSON.stringify(inventory, null, 2));
 
       // Build result
       const diag = diagnoseHomeState(homeState);
