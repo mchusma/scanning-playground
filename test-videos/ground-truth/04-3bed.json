@@ -1,0 +1,30 @@
+{
+  "_comment": "Ground truth for 04-3bed.mp4 — Empty Apartment Tour 3 bedroom 1.5 Baths Montreal. Draft — refine after first run.",
+  "source": "https://www.youtube.com/watch?v=GkoHJKgQ4T8",
+  "expectedRooms": [
+    { "name": "Living Room", "aliases": ["Lounge", "Great Room", "Family Room", "Main Room"], "roomType": "living room", "required": true },
+    { "name": "Kitchen", "aliases": ["Kitchenette"], "roomType": "kitchen", "required": true },
+    { "name": "Bedroom 1", "aliases": ["Primary Bedroom", "Master Bedroom", "Bedroom"], "roomType": "bedroom", "required": true },
+    { "name": "Bedroom 2", "aliases": ["Second Bedroom", "Guest Bedroom"], "roomType": "bedroom", "required": true },
+    { "name": "Bedroom 3", "aliases": ["Third Bedroom", "Kids Room", "Small Bedroom"], "roomType": "bedroom", "required": true },
+    { "name": "Full Bathroom", "aliases": ["Bathroom", "Primary Bathroom", "Main Bathroom", "Bath"], "roomType": "bathroom", "required": true },
+    { "name": "Half Bath", "aliases": ["Powder Room", "Half Bathroom", "Second Bathroom", "Bathroom 2"], "roomType": "bathroom", "required": false },
+    { "name": "Hallway", "aliases": ["Corridor", "Hall"], "roomType": "hallway", "required": false },
+    { "name": "Entryway", "aliases": ["Entry", "Foyer", "Front Door"], "roomType": "entryway", "required": false }
+  ],
+  "expectedConnections": [
+    { "from": "Living Room", "to": "Kitchen" },
+    { "from": "Hallway", "to": "Bedroom 1" },
+    { "from": "Hallway", "to": "Bedroom 2" }
+  ],
+  "expectedFeatures": {
+    "Kitchen": ["Sink", "Refrigerator"],
+    "Bathroom": ["Toilet", "Sink"]
+  },
+  "scoring": {
+    "minRooms": 4,
+    "maxReasonableRooms": 12,
+    "minConnections": 2,
+    "maxReasonableConnections": 15
+  }
+}

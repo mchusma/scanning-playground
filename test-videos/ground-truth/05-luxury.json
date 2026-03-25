@@ -1,0 +1,38 @@
+{
+  "_comment": "Ground truth for 05-luxury.mp4 — Kaizen Custom Homes Creekside Modern $4M. Draft — refine after first viewing.",
+  "source": "https://www.youtube.com/watch?v=Brupa_JqbPw",
+  "expectedRooms": [
+    { "name": "Entryway", "aliases": ["Entry", "Foyer", "Front Door"], "roomType": "entryway", "required": true },
+    { "name": "Living Room", "aliases": ["Great Room", "Family Room", "Lounge"], "roomType": "living room", "required": true },
+    { "name": "Kitchen", "aliases": [], "roomType": "kitchen", "required": true },
+    { "name": "Primary Bedroom", "aliases": ["Master Bedroom", "Master Suite", "Bedroom 1"], "roomType": "bedroom", "required": true },
+    { "name": "Primary Bathroom", "aliases": ["Master Bath", "Ensuite", "Ensuite Bathroom", "Ensuite Bathroom 1", "Master Bathroom"], "roomType": "bathroom", "required": true },
+    { "name": "Dining Room", "aliases": ["Dining Area", "Formal Dining"], "roomType": "dining room", "required": false },
+    { "name": "Office", "aliases": ["Study", "Den", "Home Office"], "roomType": "office", "required": false },
+    { "name": "Laundry Room", "aliases": ["Laundry", "Utility Room"], "roomType": "laundry room", "required": false },
+    { "name": "Garage", "aliases": ["Car Garage"], "roomType": "garage", "required": false },
+    { "name": "Walk-in Closet", "aliases": ["Closet", "Primary Closet", "Master Closet", "Walk-in Closet 1"], "roomType": "closet", "required": false },
+    { "name": "Bedroom 2", "aliases": ["Guest Bedroom", "Second Bedroom"], "roomType": "bedroom", "required": false },
+    { "name": "Bedroom 3", "aliases": ["Third Bedroom", "Kids Room"], "roomType": "bedroom", "required": false },
+    { "name": "Guest Bathroom", "aliases": ["Hall Bath", "Second Bathroom"], "roomType": "bathroom", "required": false },
+    { "name": "Patio", "aliases": ["Deck", "Outdoor Area", "Back Yard", "Backyard", "Terrace", "Balcony"], "roomType": "outdoor", "required": false }
+  ],
+  "expectedConnections": [
+    { "from": "Entryway", "to": "Living Room" },
+    { "from": "Living Room", "to": "Kitchen" },
+    { "from": "Kitchen", "to": "Dining Room" },
+    { "from": "Primary Bedroom", "to": "Primary Bathroom" },
+    { "from": "Primary Bedroom", "to": "Walk-in Closet" }
+  ],
+  "expectedFeatures": {
+    "Kitchen": ["Island", "Refrigerator", "Sink", "Oven"],
+    "Primary Bathroom": ["Shower", "Bathtub"],
+    "Living Room": ["Fireplace"]
+  },
+  "scoring": {
+    "minRooms": 6,
+    "maxReasonableRooms": 20,
+    "minConnections": 5,
+    "maxReasonableConnections": 25
+  }
+}

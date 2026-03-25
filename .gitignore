@@ -4,3 +4,4 @@ node_modules/
 test-output/
 test-video-frames/
 test-video-input.mp4
+test-videos/*.mp4
