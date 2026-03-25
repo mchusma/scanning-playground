@@ -39,6 +39,7 @@ const ROOM_COLORS = {
 const DEFAULT_ROOM_COLOR = { fill: '#f8f8f8', stroke: '#aaaaaa', icon: '' };
 
 // ── Room sizing (pixels in SVG coordinate space) ────────────────────────────
+// Default room size — used when room has no .w/.h properties
 const ROOM_WIDTH = 140;
 const ROOM_HEIGHT = 90;
 const WALL_THICKNESS = 3;
@@ -57,6 +58,12 @@ const ICON_PATHS = {
   garage: '<rect x="-7" y="-4" width="14" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M-5,4 L-5,-1 L5,-1 L5,4" fill="none" stroke="currentColor" stroke-width="1"/>',
   entryway: '<path d="M-4,-6 L-4,6 L4,6 L4,-6 Z M-2,-6 L-2,4 Q-2,5 -1,5 L1,5 Q2,5 2,4 L2,-6" fill="none" stroke="currentColor" stroke-width="1.2"/>',
 };
+
+/**
+ * Get room dimensions (supports variable per-room sizing)
+ */
+function roomW(room) { return room.w || ROOM_WIDTH; }
+function roomH(room) { return room.h || ROOM_HEIGHT; }
 
 /**
  * Escape text for safe SVG embedding
@@ -116,10 +123,10 @@ function getDoorWall(room, otherRoom, edge) {
 /**
  * Get the SVG coordinates for a door opening on a room's wall
  */
-function getDoorPosition(roomX, roomY, wall, position) {
-  const halfW = ROOM_WIDTH / 2;
-  const halfH = ROOM_HEIGHT / 2;
-  const offset = (position - 0.5) * (wall === 'north' || wall === 'south' ? ROOM_WIDTH : ROOM_HEIGHT) * 0.6;
+function getDoorPosition(roomX, roomY, wall, position, rw = ROOM_WIDTH, rh = ROOM_HEIGHT) {
+  const halfW = rw / 2;
+  const halfH = rh / 2;
+  const offset = (position - 0.5) * (wall === 'north' || wall === 'south' ? rw : rh) * 0.6;
 
   switch (wall) {
     case 'north':
@@ -185,10 +192,11 @@ function computeBounds(rooms) {
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const room of rooms) {
-    minX = Math.min(minX, room.x - ROOM_WIDTH / 2);
-    minY = Math.min(minY, room.y - ROOM_HEIGHT / 2);
-    maxX = Math.max(maxX, room.x + ROOM_WIDTH / 2);
-    maxY = Math.max(maxY, room.y + ROOM_HEIGHT / 2);
+    const rw = roomW(room), rh = roomH(room);
+    minX = Math.min(minX, room.x - rw / 2);
+    minY = Math.min(minY, room.y - rh / 2);
+    maxX = Math.max(maxX, room.x + rw / 2);
+    maxY = Math.max(maxY, room.y + rh / 2);
   }
 
   minX -= PADDING;
@@ -344,12 +352,11 @@ export function generateFloorPlanSVG(homeState, options = {}) {
   for (const room of rooms) {
     const color = getRoomColor(room.roomType);
     const isCurrent = room.id === locationRoomId;
-    const halfW = ROOM_WIDTH / 2;
-    const halfH = ROOM_HEIGHT / 2;
-    const rx = room.x - halfW;
-    const ry = room.y - halfH;
+    const rw = roomW(room), rh = roomH(room);
+    const rx = room.x - rw / 2;
+    const ry = room.y - rh / 2;
 
-    parts.push(`<rect x="${rx}" y="${ry}" width="${ROOM_WIDTH}" height="${ROOM_HEIGHT}" rx="3" fill="${color.fill}" stroke="${isCurrent ? '#0f9d87' : color.stroke}" stroke-width="${isCurrent ? WALL_THICKNESS + 1 : WALL_THICKNESS}" class="room-rect"/>`);
+    parts.push(`<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="3" fill="${color.fill}" stroke="${isCurrent ? '#0f9d87' : color.stroke}" stroke-width="${isCurrent ? WALL_THICKNESS + 1 : WALL_THICKNESS}" class="room-rect"/>`);
   }
   parts.push(`</g>`);
 
@@ -367,12 +374,12 @@ export function generateFloorPlanSVG(homeState, options = {}) {
     // Door position on the "from" room wall (spread if multiple doors on same wall)
     const fromDoor = getDoorWall(fromRoom, toRoom, edge);
     const fromDoorPosition = nextDoorPosition(fromRoom.id, fromDoor.wall);
-    const fromDoorPos = getDoorPosition(fromRoom.x, fromRoom.y, fromDoor.wall, fromDoorPosition);
+    const fromDoorPos = getDoorPosition(fromRoom.x, fromRoom.y, fromDoor.wall, fromDoorPosition, roomW(fromRoom), roomH(fromRoom));
 
     // Door position on the "to" room wall
     const toDoor = getDoorWall(toRoom, fromRoom, edge);
     const toDoorPosition = nextDoorPosition(toRoom.id, toDoor.wall);
-    const toDoorPos = getDoorPosition(toRoom.x, toRoom.y, toDoor.wall, toDoorPosition);
+    const toDoorPos = getDoorPosition(toRoom.x, toRoom.y, toDoor.wall, toDoorPosition, roomW(toRoom), roomH(toRoom));
 
     // Draw connection line between the two door positions (not room centers)
     parts.push(`<line x1="${fromDoorPos.x}" y1="${fromDoorPos.y}" x2="${toDoorPos.x}" y2="${toDoorPos.y}" stroke="rgba(24,103,178,0.15)" stroke-width="1" stroke-dasharray="4,4" data-edge="${escSvg(edge.key)}"/>`);
@@ -401,8 +408,9 @@ export function generateFloorPlanSVG(homeState, options = {}) {
   for (const room of rooms) {
     const color = getRoomColor(room.roomType);
     const isCurrent = room.id === locationRoomId;
-    const halfW = ROOM_WIDTH / 2;
-    const halfH = ROOM_HEIGHT / 2;
+    const rw = roomW(room), rh = roomH(room);
+    const halfW = rw / 2;
+    const halfH = rh / 2;
     const rx = room.x - halfW;
     const ry = room.y - halfH;
 
@@ -414,7 +422,7 @@ export function generateFloorPlanSVG(homeState, options = {}) {
 
     // Current location highlight
     if (isCurrent) {
-      parts.push(`<rect x="${rx - 2}" y="${ry - 2}" width="${ROOM_WIDTH + 4}" height="${ROOM_HEIGHT + 4}" rx="5" fill="none" stroke="rgba(15,157,135,0.3)" stroke-width="2" stroke-dasharray="6,3">`);
+      parts.push(`<rect x="${rx - 2}" y="${ry - 2}" width="${rw + 4}" height="${rh + 4}" rx="5" fill="none" stroke="rgba(15,157,135,0.3)" stroke-width="2" stroke-dasharray="6,3">`);
       if (animate) {
         parts.push(`<animate attributeName="stroke-dashoffset" from="0" to="18" dur="1.5s" repeatCount="indefinite"/>`);
       }
@@ -437,7 +445,7 @@ export function generateFloorPlanSVG(homeState, options = {}) {
     }
 
     // Room name — always centered on room, with truncation for long names
-    const maxLabelLen = Math.floor(ROOM_WIDTH / 8);
+    const maxLabelLen = Math.floor(rw / 8);
     const nameChars = Array.from(room.name);
     const displayName = nameChars.length > maxLabelLen ? nameChars.slice(0, maxLabelLen - 1).join('') + '\u2026' : room.name;
     parts.push(`<text x="${room.x}" y="${nameY}" text-anchor="middle" class="room-label">${escSvg(displayName)}</text>`);
@@ -448,7 +456,7 @@ export function generateFloorPlanSVG(homeState, options = {}) {
 
     // Features (up to 2, truncated to fit)
     if (hasFeatures) {
-      const maxFeatLen = Math.floor(ROOM_WIDTH / 6);
+      const maxFeatLen = Math.floor(rw / 6);
       let featureText = room.features.slice(0, 2).join(', ');
       const extra = room.features.length > 2 ? ` +${room.features.length - 2}` : '';
       if (featureText.length + extra.length > maxFeatLen) {
@@ -465,7 +473,7 @@ export function generateFloorPlanSVG(homeState, options = {}) {
     // Debug overlays
     if (debug) {
       parts.push(`<text x="${rx + 2}" y="${ry - 3}" class="debug-text">${escSvg(room.id)}</text>`);
-      parts.push(`<text x="${rx + 2}" y="${ry + ROOM_HEIGHT + 10}" class="debug-coord">(${Math.round(room.x)}, ${Math.round(room.y)})</text>`);
+      parts.push(`<text x="${rx + 2}" y="${ry + rh + 10}" class="debug-coord">(${Math.round(room.x)}, ${Math.round(room.y)}) ${rw}x${rh}</text>`);
     }
 
     parts.push(`</g>`);
@@ -594,7 +602,9 @@ export function diagnoseHomeState(homeState) {
       const b = roomList[j];
       const dx = Math.abs(a.x - b.x);
       const dy = Math.abs(a.y - b.y);
-      if (dx < ROOM_WIDTH * 0.7 && dy < ROOM_HEIGHT * 0.7) {
+      const avgW = (roomW(a) + roomW(b)) / 2;
+      const avgH = (roomH(a) + roomH(b)) / 2;
+      if (dx < avgW * 0.7 && dy < avgH * 0.7) {
         issues.push({ level: 'warn', msg: `Rooms "${a.id}" and "${b.id}" overlap significantly (dist: ${Math.round(dx)}, ${Math.round(dy)})` });
       }
     }

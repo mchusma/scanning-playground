@@ -132,6 +132,48 @@ function slugify(text) {
   return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+// Room sizes by type (width, height in SVG coordinate space)
+const ROOM_SIZES = {
+  'living room': { w: 180, h: 120 },
+  'family room': { w: 180, h: 120 },
+  'kitchen': { w: 160, h: 110 },
+  'dining room': { w: 150, h: 100 },
+  'bedroom': { w: 150, h: 110 },
+  'primary bedroom': { w: 170, h: 120 },
+  'office': { w: 130, h: 100 },
+  'bathroom': { w: 100, h: 80 },
+  'closet': { w: 80, h: 70 },
+  'hallway': { w: 120, h: 60 },
+  'entryway': { w: 110, h: 80 },
+  'garage': { w: 180, h: 130 },
+  'laundry room': { w: 100, h: 80 },
+  'pantry': { w: 80, h: 70 },
+  'stairs': { w: 80, h: 100 },
+  'outdoor': { w: 160, h: 100 },
+  'balcony': { w: 140, h: 70 },
+  'studio': { w: 200, h: 140 },
+};
+const DEFAULT_ROOM_SIZE = { w: 140, h: 90 };
+
+function getRoomSize(roomType) {
+  if (!roomType) return DEFAULT_ROOM_SIZE;
+  return ROOM_SIZES[roomType.toLowerCase().trim()] || DEFAULT_ROOM_SIZE;
+}
+
+// Direction vectors for room placement
+const DIRECTION_VECTORS = {
+  north: { dx: 0, dy: -1 },
+  south: { dx: 0, dy: 1 },
+  east: { dx: 1, dy: 0 },
+  west: { dx: -1, dy: 0 },
+  left: { dx: -1, dy: 0 },
+  right: { dx: 1, dy: 0 },
+  straight: { dx: 0, dy: -1 },
+  back: { dx: 0, dy: 1 },
+  up: { dx: 0, dy: -1 },
+  down: { dx: 0, dy: 1 },
+};
+
 class HomeState {
   constructor() {
     this.rooms = new Map();
@@ -143,22 +185,64 @@ class HomeState {
     this.events = [];
   }
 
+  // Check if a position would overlap with an existing room
+  _hasCollision(x, y, w, h, excludeId) {
+    for (const [id, room] of this.rooms) {
+      if (id === excludeId) continue;
+      const rs = getRoomSize(room.roomType);
+      const overlapX = Math.abs(room.x - x) < (rs.w + w) / 2 + 10;
+      const overlapY = Math.abs(room.y - y) < (rs.h + h) / 2 + 10;
+      if (overlapX && overlapY) return true;
+    }
+    return false;
+  }
+
+  // Find a non-overlapping position near the target
+  _findFreePosition(targetX, targetY, w, h, excludeId) {
+    if (!this._hasCollision(targetX, targetY, w, h, excludeId)) {
+      return { x: targetX, y: targetY };
+    }
+    // Try spiral outward
+    const offsets = [
+      { dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 0, dy: -1 },
+      { dx: 1, dy: 1 }, { dx: -1, dy: 1 }, { dx: 1, dy: -1 }, { dx: -1, dy: -1 },
+    ];
+    for (let dist = 1; dist <= 3; dist++) {
+      for (const off of offsets) {
+        const nx = targetX + off.dx * (w + 20) * dist;
+        const ny = targetY + off.dy * (h + 20) * dist;
+        if (!this._hasCollision(nx, ny, w, h, excludeId)) {
+          return { x: nx, y: ny };
+        }
+      }
+    }
+    // Give up and place it anyway
+    return { x: targetX + (w + 20), y: targetY };
+  }
+
   upsertRoom({ name, roomType, notes, confidence }) {
     const normalizedName = (name || '').trim();
     if (!normalizedName) return null;
     const id = slugify(normalizedName);
     let room = this.rooms.get(id);
     if (!room) {
+      const size = getRoomSize(roomType);
+      // Default position — will be updated when connections are made
       const idx = this.rooms.size;
       const col = idx % 4;
       const row = Math.floor(idx / 4);
+      const defaultX = 300 + col * 200;
+      const defaultY = 300 + row * 160;
+      const pos = this._findFreePosition(defaultX, defaultY, size.w, size.h, null);
       room = {
         id, name: normalizedName,
         roomType: roomType || 'room',
         notes: notes || '',
         confidence: typeof confidence === 'number' ? confidence : 0.6,
         features: [],
-        x: 200 + col * 180, y: 200 + row * 140,
+        x: pos.x, y: pos.y,
+        w: size.w, h: size.h,
+        positionSource: 'grid',
       };
       this.rooms.set(id, room);
       this.events.push(`Mapped room: ${room.name}`);
@@ -166,6 +250,10 @@ class HomeState {
       room.roomType = roomType || room.roomType;
       room.notes = notes || room.notes;
       if (typeof confidence === 'number') room.confidence = Math.max(0.1, Math.min(1, confidence));
+      // Update size if roomType changed
+      const size = getRoomSize(room.roomType);
+      room.w = size.w;
+      room.h = size.h;
     }
     return room;
   }
@@ -200,6 +288,19 @@ class HomeState {
         const from = this.upsertRoom({ name: args.fromRoom });
         const to = this.upsertRoom({ name: args.toRoom });
         if (!from || !to || from.id === to.id) return null;
+        // Directional placement: position "to" room based on direction from "from" room
+        const dir = args.directionHint || args.moveType || 'east';
+        const vec = DIRECTION_VECTORS[dir] || DIRECTION_VECTORS.east;
+        if (to.positionSource === 'grid') {
+          // Place relative to "from" room
+          const gap = 30;
+          const targetX = from.x + vec.dx * (from.w / 2 + to.w / 2 + gap);
+          const targetY = from.y + vec.dy * (from.h / 2 + to.h / 2 + gap);
+          const pos = this._findFreePosition(targetX, targetY, to.w, to.h, to.id);
+          to.x = pos.x;
+          to.y = pos.y;
+          to.positionSource = 'directional';
+        }
         this.upsertEdge({
           fromRoom: args.fromRoom, toRoom: args.toRoom,
           pathType: args.pathType || 'doorway',

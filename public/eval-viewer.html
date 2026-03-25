@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Eval Floor Plan Viewer</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #1a1a1a; color: #eee; margin: 0; padding: 20px; }
+  h1 { font-size: 20px; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(600px, 1fr)); gap: 20px; }
+  .card { background: #2a2a2a; border-radius: 8px; padding: 16px; }
+  .card h2 { font-size: 14px; margin: 0 0 12px; color: #aaa; }
+  .card img { width: 100%; border-radius: 4px; background: white; }
+  .scores { font-size: 12px; color: #888; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>Eval Floor Plans</h1>
+<div class="grid" id="grid"></div>
+<script>
+const tests = ['01-studio', '02-1bed', '03-2bed-penthouse', '04-3bed', '05-luxury'];
+const grid = document.getElementById('grid');
+for (const name of tests) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <h2>${name}</h2>
+    <img src="/test-output/eval/${name}-floorplan.svg" alt="${name}" />
+    <div class="scores" id="scores-${name}">Loading...</div>
+  `;
+  grid.appendChild(card);
+}
+fetch('/test-output/eval/eval-summary.json')
+  .then(r => r.json())
+  .then(data => {
+    for (const t of data.tests || []) {
+      const el = document.getElementById('scores-' + t.name);
+      if (el) el.textContent = `Score: ${t.overall}/100 | Rooms: ${t.scores.rooms.detected}/${t.scores.rooms.expected} | Connections: ${t.scores.connections.found}/${t.scores.connections.expected} | Features: ${t.scores.features.found}/${t.scores.features.expected}`;
+    }
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>

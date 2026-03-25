@@ -127,6 +127,7 @@ app.get('/vendor/p-retry/index.patched.js', async (_req, res) => {
 
 app.use('/genai', express.static(path.join(__dirname, 'node_modules/@google/genai/dist/web')));
 app.use('/vendor', express.static(path.join(__dirname, 'node_modules')));
+app.use('/test-output', express.static(path.join(__dirname, 'test-output')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/favicon.ico', (_req, res) => {
