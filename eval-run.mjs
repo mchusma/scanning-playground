@@ -12,7 +12,7 @@
  *   node eval-run.mjs --list             # List available test videos
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync, rmdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -48,11 +48,13 @@ RULES:
 6. Look for rooms visible through doorways/openings — call connect_rooms even for rooms you haven't entered yet.
 
 TOOL PRIORITY (most to least important):
-1. upsert_room — Create rooms. Name every distinct space. Include hallways, closets, pantries, laundry rooms, balconies, stairs.
-2. move_between_rooms — Record transitions. ALWAYS include pathType (doorway, archway, hallway, stairs, open-plan).
+1. upsert_room — Create rooms. Name every distinct space. Include hallways, closets, pantries, laundry rooms, balconies, stairs. ALWAYS set roomType.
+2. move_between_rooms — Record transitions. ALWAYS include pathType and directionHint.
 3. connect_rooms — Link rooms you can see but haven't walked between.
-4. place_feature — Log visible furniture, appliances, fixtures (sink, refrigerator, oven, toilet, shower, bed, sofa, TV, washer, dryer, fireplace).
-5. set_user_location — Update your current position.
+4. place_feature — Log visible furniture, appliances, fixtures. Key features to look for: sink, refrigerator, oven, dishwasher, toilet, shower, bathtub, bed, sofa/couch, TV, washer, dryer, fireplace, island, countertop.
+5. set_user_location — ONLY call this when you CHANGE rooms. Do NOT call it every frame for the same room.
+
+IMPORTANT: Do NOT waste tool calls by calling set_user_location repeatedly for the same room. Only call it when your location actually changes.
 
 Room types: kitchen, bedroom, bathroom, living room, dining room, hallway, entryway, office, closet, laundry room, garage, outdoor, studio, pantry, stairs, balcony.
 
@@ -365,6 +367,12 @@ class HomeState {
 
 // ── Frame extraction ─────────────────────────────────────────────────────
 
+/**
+ * Extract frames using a hybrid approach:
+ * 1. Scene-change detection (catches room transitions)
+ * 2. Regular interval sampling (fills gaps where scene detection misses)
+ * 3. Deduplication by timestamp to avoid redundant frames
+ */
 function extractFrames(videoPath, frameDir) {
   mkdirSync(frameDir, { recursive: true });
   // Clean old frames
@@ -372,20 +380,108 @@ function extractFrames(videoPath, frameDir) {
     if (f.endsWith('.jpg')) unlinkSync(path.join(frameDir, f));
   }
 
-  const cmd = [
+  // Step 1: Get video duration
+  let duration = 0;
+  try {
+    const probe = execSync(
+      `ffprobe -v quiet -show_entries format=duration -of csv=p=0 "${videoPath}"`,
+      { encoding: 'utf-8', timeout: 10000 }
+    ).trim();
+    duration = parseFloat(probe) || 0;
+  } catch { /* fallback to uniform extraction */ }
+
+  // Step 2: Extract scene-change frames (threshold 0.25 = moderate sensitivity)
+  const sceneDir = path.join(frameDir, 'scene');
+  mkdirSync(sceneDir, { recursive: true });
+  try {
+    execSync([
+      'ffmpeg', '-y', '-i', `"${videoPath}"`,
+      '-vf', `select='gt(scene\\,0.25)',scale=${FRAME_WIDTH}:-1`,
+      '-vsync', 'vfr',
+      '-q:v', String(JPEG_QUALITY),
+      '-frames:v', String(Math.floor(MAX_FRAMES * 0.6)),
+      `"${path.join(sceneDir, 'scene_%04d.jpg')}"`,
+    ].join(' '), { stdio: 'pipe', timeout: 120000 });
+  } catch (e) {
+    console.log('  Scene detection failed, falling back to uniform extraction');
+  }
+
+  const sceneFrames = existsSync(sceneDir)
+    ? readdirSync(sceneDir).filter(f => f.endsWith('.jpg')).length
+    : 0;
+
+  // Step 3: Extract uniform interval frames (fills gaps)
+  const uniformDir = path.join(frameDir, 'uniform');
+  mkdirSync(uniformDir, { recursive: true });
+  // Use wider interval if we got many scene frames
+  const uniformInterval = sceneFrames > 10 ? FRAME_INTERVAL_SEC * 2 : FRAME_INTERVAL_SEC;
+  const uniformMax = Math.max(10, MAX_FRAMES - sceneFrames);
+  execSync([
     'ffmpeg', '-y', '-i', `"${videoPath}"`,
-    '-vf', `fps=1/${FRAME_INTERVAL_SEC},scale=${FRAME_WIDTH}:-1`,
+    '-vf', `fps=1/${uniformInterval},scale=${FRAME_WIDTH}:-1`,
     '-q:v', String(JPEG_QUALITY),
-    '-frames:v', String(MAX_FRAMES),
-    `"${path.join(frameDir, 'frame_%04d.jpg')}"`,
-  ].join(' ');
+    '-frames:v', String(uniformMax),
+    `"${path.join(uniformDir, 'frame_%04d.jpg')}"`,
+  ].join(' '), { stdio: 'pipe', timeout: 60000 });
 
-  execSync(cmd, { stdio: 'pipe', timeout: 60000 });
+  // Step 4: Merge and sort all frames by timestamp
+  // For scene frames, extract timestamps
+  const allFrames = [];
 
-  return readdirSync(frameDir)
-    .filter(f => f.endsWith('.jpg'))
-    .sort()
-    .map(f => path.join(frameDir, f));
+  // Add scene-change frames with estimated timestamps
+  if (sceneFrames > 0) {
+    const sceneFiles = readdirSync(sceneDir).filter(f => f.endsWith('.jpg')).sort();
+    // Estimate timestamps based on frame order and video duration
+    for (let i = 0; i < sceneFiles.length; i++) {
+      const srcPath = path.join(sceneDir, sceneFiles[i]);
+      const ts = duration > 0 ? (i / sceneFiles.length) * duration : i * 2;
+      allFrames.push({ path: srcPath, timestamp: ts, type: 'scene' });
+    }
+  }
+
+  // Add uniform frames with known timestamps
+  const uniformFiles = readdirSync(uniformDir).filter(f => f.endsWith('.jpg')).sort();
+  for (let i = 0; i < uniformFiles.length; i++) {
+    const srcPath = path.join(uniformDir, uniformFiles[i]);
+    const ts = i * uniformInterval;
+    allFrames.push({ path: srcPath, timestamp: ts, type: 'uniform' });
+  }
+
+  // Sort by timestamp and deduplicate (remove frames within 1.5s of each other)
+  allFrames.sort((a, b) => a.timestamp - b.timestamp);
+  const dedupedFrames = [];
+  let lastTs = -999;
+  for (const frame of allFrames) {
+    if (frame.timestamp - lastTs >= 1.5) {
+      dedupedFrames.push(frame);
+      lastTs = frame.timestamp;
+    }
+  }
+
+  // Limit to MAX_FRAMES
+  const finalFrames = dedupedFrames.slice(0, MAX_FRAMES);
+
+  // Copy to output dir with sequential names
+  const outputPaths = [];
+  for (let i = 0; i < finalFrames.length; i++) {
+    const outPath = path.join(frameDir, `frame_${String(i + 1).padStart(4, '0')}.jpg`);
+    if (finalFrames[i].path !== outPath) {
+      execSync(`cp "${finalFrames[i].path}" "${outPath}"`, { stdio: 'pipe' });
+    }
+    outputPaths.push(outPath);
+  }
+
+  // Cleanup temp dirs
+  try {
+    for (const f of readdirSync(sceneDir)) unlinkSync(path.join(sceneDir, f));
+    for (const f of readdirSync(uniformDir)) unlinkSync(path.join(uniformDir, f));
+    rmdirSync(sceneDir); rmdirSync(uniformDir);
+  } catch {}
+
+  const scenePct = sceneFrames > 0 ? Math.round((finalFrames.filter(f => f.type === 'scene').length / finalFrames.length) * 100) : 0;
+  console.log(`  Extracted ${finalFrames.length} frames (${scenePct}% from scene detection, ${100 - scenePct}% uniform)`);
+
+  return outputPaths;
 }
 
 // ── Gemini Live replay ───────────────────────────────────────────────────
@@ -394,7 +490,7 @@ async function runReplay(frames, testName) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) { console.error('GEMINI_API_KEY not set'); process.exit(1); }
 
-  const model = process.env.REPLAY_MODEL || 'gemini-2.5-flash-native-audio-preview-12-2025';
+  const model = process.env.REPLAY_MODEL || 'gemini-2.5-flash-native-audio-latest';
   const homeState = new HomeState();
   const transcripts = [];
 
@@ -492,7 +588,162 @@ async function runReplay(frames, testName) {
   // Post-processing: merge duplicate rooms and fix types
   consolidateRooms(homeState);
 
+  // Pass 2: Review with regular Gemini API for corrections
+  await reviewPass(homeState, frames, apiKey);
+
   return { homeState, transcripts };
+}
+
+/**
+ * Pass 2: Use regular Gemini API to review the discovered map.
+ * Sends a subset of key frames + the current map state, asks model
+ * to identify missing rooms, wrong connections, and duplicate rooms.
+ */
+async function reviewPass(homeState, frames, apiKey) {
+  console.log('  Running review pass...');
+  const ai = new GoogleGenAI({ apiKey });
+
+  // Select key frames: first, last, and evenly spaced
+  const keyFrameIndices = [];
+  const numKeyFrames = Math.min(12, frames.length);
+  for (let i = 0; i < numKeyFrames; i++) {
+    keyFrameIndices.push(Math.floor(i * (frames.length - 1) / (numKeyFrames - 1)));
+  }
+  const keyFrames = keyFrameIndices.map(i => ({
+    inlineData: {
+      mimeType: 'image/jpeg',
+      data: readFileSync(frames[i]).toString('base64'),
+    },
+  }));
+
+  // Build current state summary
+  const roomsList = [...homeState.rooms.values()].map(r =>
+    `- ${r.name} (${r.roomType}): features=[${r.features.slice(0, 5).join(', ')}]`
+  ).join('\n');
+  const edgesList = homeState.edges.map(e => {
+    const from = homeState.rooms.get(e.fromId)?.name || e.fromId;
+    const to = homeState.rooms.get(e.toId)?.name || e.toId;
+    return `- ${from} ↔ ${to} (${e.pathType})`;
+  }).join('\n');
+
+  const reviewPrompt = `You are reviewing a home floor plan that was automatically generated from a video walkthrough.
+
+Here are ${keyFrames.length} frames from the walkthrough, followed by the current map.
+
+CURRENT MAP:
+Rooms (${homeState.rooms.size}):
+${roomsList}
+
+Connections (${homeState.edges.length}):
+${edgesList}
+
+Analyze the frames and the map. Return a JSON object with corrections:
+{
+  "missingRooms": [{"name": "Room Name", "roomType": "type", "connectsTo": "Adjacent Room", "pathType": "doorway"}],
+  "duplicateRooms": [{"keep": "Room A", "remove": "Room B", "reason": "same physical room"}],
+  "missingConnections": [{"from": "Room A", "to": "Room B", "pathType": "doorway"}],
+  "missingFeatures": [{"room": "Room Name", "feature": "feature name"}],
+  "roomTypeCorrections": [{"room": "Room Name", "correctType": "type"}]
+}
+
+Only include corrections you are confident about. Return ONLY the JSON, no other text.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-pro',
+      contents: [
+        {
+          role: 'user',
+          parts: [...keyFrames, { text: reviewPrompt }],
+        },
+      ],
+      config: { temperature: 0.2 },
+    });
+
+    const text = response.text || '';
+    // Extract JSON from response (may be wrapped in markdown code block)
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.log('  Review pass: no valid JSON response');
+      return;
+    }
+
+    const corrections = JSON.parse(jsonMatch[0]);
+    let applied = 0;
+
+    // Apply missing rooms
+    for (const room of corrections.missingRooms || []) {
+      if (room.name && !homeState.rooms.has(slugify(room.name))) {
+        homeState.upsertRoom({ name: room.name, roomType: room.roomType, confidence: 0.5 });
+        if (room.connectsTo) {
+          homeState.upsertEdge({ fromRoom: room.connectsTo, toRoom: room.name, pathType: room.pathType || 'doorway' });
+        }
+        console.log(`    + Added missing room: ${room.name}`);
+        applied++;
+      }
+    }
+
+    // Apply duplicate merges
+    for (const dup of corrections.duplicateRooms || []) {
+      const keepId = slugify(dup.keep);
+      const removeId = slugify(dup.remove);
+      if (homeState.rooms.has(keepId) && homeState.rooms.has(removeId)) {
+        const keepRoom = homeState.rooms.get(keepId);
+        const removeRoom = homeState.rooms.get(removeId);
+        // Merge features
+        for (const feat of removeRoom.features) {
+          if (!keepRoom.features.includes(feat)) keepRoom.features.push(feat);
+        }
+        // Redirect edges
+        for (const edge of homeState.edges) {
+          if (edge.fromId === removeId) edge.fromId = keepId;
+          if (edge.toId === removeId) edge.toId = keepId;
+        }
+        homeState.edges = homeState.edges.filter(e => e.fromId !== e.toId);
+        homeState.rooms.delete(removeId);
+        console.log(`    - Merged duplicate: "${dup.remove}" → "${dup.keep}"`);
+        applied++;
+      }
+    }
+
+    // Apply missing connections
+    for (const conn of corrections.missingConnections || []) {
+      if (conn.from && conn.to) {
+        const fromId = slugify(conn.from);
+        const toId = slugify(conn.to);
+        if (homeState.rooms.has(fromId) && homeState.rooms.has(toId)) {
+          const key = [fromId, toId].sort().join('::');
+          if (!homeState.edges.some(e => e.key === key)) {
+            homeState.upsertEdge({ fromRoom: conn.from, toRoom: conn.to, pathType: conn.pathType || 'doorway' });
+            console.log(`    + Added connection: ${conn.from} ↔ ${conn.to}`);
+            applied++;
+          }
+        }
+      }
+    }
+
+    // Apply missing features
+    for (const feat of corrections.missingFeatures || []) {
+      const room = homeState.rooms.get(slugify(feat.room));
+      if (room && feat.feature && !room.features.some(f => f.toLowerCase().includes(feat.feature.toLowerCase()))) {
+        room.features.push(feat.feature);
+        applied++;
+      }
+    }
+
+    // Apply room type corrections
+    for (const fix of corrections.roomTypeCorrections || []) {
+      const room = homeState.rooms.get(slugify(fix.room));
+      if (room && fix.correctType) {
+        room.roomType = fix.correctType;
+        applied++;
+      }
+    }
+
+    console.log(`  Review pass: ${applied} corrections applied`);
+  } catch (err) {
+    console.log(`  Review pass failed: ${err.message}`);
+  }
 }
 
 /**
@@ -503,26 +754,38 @@ async function runReplay(frames, testName) {
 function consolidateRooms(homeState) {
   const rooms = [...homeState.rooms.values()];
 
-  // Find potential duplicate pairs based on type and features
+  // Find potential duplicate pairs — only merge when names suggest duplication
+  // (e.g., "Bedroom 1" and "Master Bedroom"), NOT numbered variants like "Bedroom 1" and "Bedroom 2"
   const merges = [];
+
+  // Extract the "base name" without numbers: "Bedroom 1" → "bedroom", "Master Bedroom" → "master bedroom"
+  function baseName(name) { return name.toLowerCase().replace(/\s*\d+\s*$/, '').trim(); }
+  function hasNumber(name) { return /\d+\s*$/.test(name); }
+
   for (let i = 0; i < rooms.length; i++) {
     for (let j = i + 1; j < rooms.length; j++) {
       const a = rooms[i], b = rooms[j];
       if (a.roomType !== b.roomType) continue;
 
-      // Check if these rooms share significant features
+      // Skip if both rooms have different numbers (e.g., "Bedroom 1" and "Bedroom 2")
+      if (hasNumber(a.name) && hasNumber(b.name) && baseName(a.name) === baseName(b.name)) continue;
+
+      // Only merge if names are very similar (one includes the other's base name)
+      const aBase = baseName(a.name), bBase = baseName(b.name);
+      const nameOverlap = aBase.includes(bBase) || bBase.includes(aBase);
+      if (!nameOverlap) continue;
+
+      // Check feature overlap
       const aFeats = new Set(a.features.map(f => f.toLowerCase().replace(/\s*\([^)]*\)/g, '').trim()));
       const bFeats = new Set(b.features.map(f => f.toLowerCase().replace(/\s*\([^)]*\)/g, '').trim()));
       const shared = [...aFeats].filter(f => bFeats.has(f)).length;
       const minFeats = Math.min(aFeats.size, bFeats.size);
 
-      // Merge if >60% feature overlap AND one room has no unique connections
       if (minFeats >= 2 && shared / minFeats > 0.6) {
         const aConns = homeState.edges.filter(e => e.fromId === a.id || e.toId === a.id);
         const bConns = homeState.edges.filter(e => e.fromId === b.id || e.toId === b.id);
-        // Keep the room with more connections
         const [keep, remove] = aConns.length >= bConns.length ? [a, b] : [b, a];
-        merges.push({ keep: keep.id, remove: remove.id, reason: `${shared}/${minFeats} shared features` });
+        merges.push({ keep: keep.id, remove: remove.id, reason: `name overlap + ${shared}/${minFeats} shared features` });
       }
     }
   }
