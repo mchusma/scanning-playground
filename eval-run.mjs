@@ -220,13 +220,41 @@ class HomeState {
     return { x: targetX + (w + 20), y: targetY };
   }
 
+  // Infer roomType from room name when not explicitly provided
+  _inferRoomType(name, explicitType) {
+    if (explicitType && explicitType !== 'room') return explicitType;
+    const lower = name.toLowerCase();
+    const typeMap = [
+      [/kitchen/i, 'kitchen'],
+      [/living\s*room|family\s*room|great\s*room|lounge/i, 'living room'],
+      [/dining/i, 'dining room'],
+      [/bed\s*room|master\s*bed/i, 'bedroom'],
+      [/bath\s*room|ensuite|powder\s*room|half\s*bath/i, 'bathroom'],
+      [/hallway|corridor|hall\b/i, 'hallway'],
+      [/entry|foyer|lobby/i, 'entryway'],
+      [/closet|wardrobe/i, 'closet'],
+      [/office|study|den/i, 'office'],
+      [/laundry|utility/i, 'laundry room'],
+      [/garage/i, 'garage'],
+      [/pantry/i, 'pantry'],
+      [/stair/i, 'stairs'],
+      [/balcony|patio|deck|terrace|outdoor/i, 'outdoor'],
+      [/mudroom/i, 'mudroom'],
+    ];
+    for (const [regex, type] of typeMap) {
+      if (regex.test(lower)) return type;
+    }
+    return explicitType || 'room';
+  }
+
   upsertRoom({ name, roomType, notes, confidence }) {
     const normalizedName = (name || '').trim();
     if (!normalizedName) return null;
     const id = slugify(normalizedName);
+    const inferredType = this._inferRoomType(normalizedName, roomType);
     let room = this.rooms.get(id);
     if (!room) {
-      const size = getRoomSize(roomType);
+      const size = getRoomSize(inferredType);
       // Default position — will be updated when connections are made
       const idx = this.rooms.size;
       const col = idx % 4;
@@ -236,7 +264,7 @@ class HomeState {
       const pos = this._findFreePosition(defaultX, defaultY, size.w, size.h, null);
       room = {
         id, name: normalizedName,
-        roomType: roomType || 'room',
+        roomType: inferredType,
         notes: notes || '',
         confidence: typeof confidence === 'number' ? confidence : 0.6,
         features: [],
@@ -247,7 +275,7 @@ class HomeState {
       this.rooms.set(id, room);
       this.events.push(`Mapped room: ${room.name}`);
     } else {
-      room.roomType = roomType || room.roomType;
+      room.roomType = inferredType !== 'room' ? inferredType : room.roomType;
       room.notes = notes || room.notes;
       if (typeof confidence === 'number') room.confidence = Math.max(0.1, Math.min(1, confidence));
       // Update size if roomType changed
@@ -438,9 +466,13 @@ async function runReplay(frames, testName) {
     frameIndex++;
 
     const ctx = stateContext();
+    const remaining = frames.length - frameIndex;
     let prompt;
     if (frameIndex === 1) {
       prompt = `FRAME 1/${frames.length}. ${ctx} What room is this? Call upsert_room, set_user_location, and place_feature for every visible feature. Tools only.`;
+    } else if (remaining <= 3) {
+      // Final frames — push for completeness
+      prompt = `FRAME ${frameIndex}/${frames.length}. FINAL FRAMES! ${ctx} This is one of the last frames. Call connect_rooms for ALL visible doorways/openings. Call place_feature for any features not yet logged. Make sure every room you've seen is connected.`;
     } else if (frameIndex % 5 === 0) {
       prompt = `FRAME ${frameIndex}/${frames.length}. ${ctx} CHECKPOINT: Have you found ALL rooms? Look for doorways, openings, or rooms visible in the background. Call connect_rooms for any room you can see from here. If this is a new room, call upsert_room + move_between_rooms.`;
     } else {
@@ -456,7 +488,80 @@ async function runReplay(frames, testName) {
 
   sendNextFrame();
   await sessionDone;
+
+  // Post-processing: merge duplicate rooms and fix types
+  consolidateRooms(homeState);
+
   return { homeState, transcripts };
+}
+
+/**
+ * Post-processing: merge rooms that are likely duplicates.
+ * E.g., "Bedroom 1" and "Master Bedroom" in the same home, or
+ * rooms with no connections that share features with a connected room.
+ */
+function consolidateRooms(homeState) {
+  const rooms = [...homeState.rooms.values()];
+
+  // Find potential duplicate pairs based on type and features
+  const merges = [];
+  for (let i = 0; i < rooms.length; i++) {
+    for (let j = i + 1; j < rooms.length; j++) {
+      const a = rooms[i], b = rooms[j];
+      if (a.roomType !== b.roomType) continue;
+
+      // Check if these rooms share significant features
+      const aFeats = new Set(a.features.map(f => f.toLowerCase().replace(/\s*\([^)]*\)/g, '').trim()));
+      const bFeats = new Set(b.features.map(f => f.toLowerCase().replace(/\s*\([^)]*\)/g, '').trim()));
+      const shared = [...aFeats].filter(f => bFeats.has(f)).length;
+      const minFeats = Math.min(aFeats.size, bFeats.size);
+
+      // Merge if >60% feature overlap AND one room has no unique connections
+      if (minFeats >= 2 && shared / minFeats > 0.6) {
+        const aConns = homeState.edges.filter(e => e.fromId === a.id || e.toId === a.id);
+        const bConns = homeState.edges.filter(e => e.fromId === b.id || e.toId === b.id);
+        // Keep the room with more connections
+        const [keep, remove] = aConns.length >= bConns.length ? [a, b] : [b, a];
+        merges.push({ keep: keep.id, remove: remove.id, reason: `${shared}/${minFeats} shared features` });
+      }
+    }
+  }
+
+  // Apply merges
+  for (const { keep, remove, reason } of merges) {
+    const keepRoom = homeState.rooms.get(keep);
+    const removeRoom = homeState.rooms.get(remove);
+    if (!keepRoom || !removeRoom) continue;
+
+    console.log(`  Consolidating: "${removeRoom.name}" → "${keepRoom.name}" (${reason})`);
+
+    // Merge features
+    for (const feat of removeRoom.features) {
+      if (!keepRoom.features.includes(feat)) keepRoom.features.push(feat);
+    }
+    keepRoom.confidence = Math.max(keepRoom.confidence, removeRoom.confidence);
+
+    // Redirect edges
+    for (const edge of homeState.edges) {
+      if (edge.fromId === remove) edge.fromId = keep;
+      if (edge.toId === remove) edge.toId = keep;
+    }
+    // Remove self-loops and duplicate edges
+    homeState.edges = homeState.edges.filter(e => e.fromId !== e.toId);
+    const seenEdges = new Set();
+    homeState.edges = homeState.edges.filter(e => {
+      const key = [e.fromId, e.toId].sort().join('::');
+      if (seenEdges.has(key)) return false;
+      seenEdges.add(key);
+      e.key = key;
+      return true;
+    });
+
+    // Remove the duplicate room
+    homeState.rooms.delete(remove);
+    if (homeState.locationRoomId === remove) homeState.locationRoomId = keep;
+    homeState.events.push(`Merged "${removeRoom.name}" into "${keepRoom.name}"`);
+  }
 }
 
 // ── Test discovery ───────────────────────────────────────────────────────
