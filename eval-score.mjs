@@ -127,11 +127,10 @@ export function scoreResult(result, truth) {
     adjacency.get(edge.toId).add(edge.fromId);
   }
 
-  // Check if two rooms are connected within N hops via transit rooms (hallways, entryways)
-  const TRANSIT_TYPES = new Set(['hallway', 'entryway', 'corridor', 'hall', 'stairs']);
+  // Check if two rooms are connected within N hops (through any intermediate room)
   function isIndirectlyConnected(fromId, toId, maxHops = 2) {
     if (!adjacency.has(fromId)) return false;
-    // BFS limited to maxHops, only traversing through transit rooms
+    // BFS limited to maxHops — allows traversal through any room
     const queue = [{ id: fromId, hops: 0 }];
     const visited = new Set([fromId]);
     while (queue.length > 0) {
@@ -139,48 +138,49 @@ export function scoreResult(result, truth) {
       for (const neighbor of adjacency.get(id) || []) {
         if (neighbor === toId) return true;
         if (visited.has(neighbor) || hops + 1 >= maxHops) continue;
-        // Only traverse through transit rooms (hallways, etc.)
-        const room = detectedRooms.find(r => r.id === neighbor);
-        if (room && TRANSIT_TYPES.has(normalize(room.roomType))) {
-          visited.add(neighbor);
-          queue.push({ id: neighbor, hops: hops + 1 });
-        }
+        visited.add(neighbor);
+        queue.push({ id: neighbor, hops: hops + 1 });
       }
     }
     return false;
   }
 
+  // Build a set of all possible IDs for each expected room (from aliases + matched)
+  function getAllIdsForExpected(expectedName) {
+    const ids = new Set();
+    // Add slug of the expected name itself
+    ids.add(slugify(expectedName));
+    // Find matching entry in roomMatching
+    const match = roomMatching.find(m =>
+      normalize(m.expected) === normalize(expectedName) ||
+      normalize(m.matched || '') === normalize(expectedName)
+    );
+    if (match?.matchedId) ids.add(match.matchedId);
+    // Find the expected room definition and add all alias slugs
+    const expRoom = expectedRooms.find(r => normalize(r.name) === normalize(expectedName));
+    if (expRoom) {
+      for (const alias of (expRoom.aliases || [])) {
+        ids.add(slugify(alias));
+      }
+    }
+    return ids;
+  }
+
   // Try to match expected connections
   const connMatching = [];
   for (const expected of expectedConns) {
-    // Find which detected room IDs correspond to the expected room names
-    const fromMatch = roomMatching.find(m =>
-      normalize(m.expected) === normalize(expected.from) ||
-      normalize(m.matched || '') === normalize(expected.from)
-    );
-    const toMatch = roomMatching.find(m =>
-      normalize(m.expected) === normalize(expected.to) ||
-      normalize(m.matched || '') === normalize(expected.to)
-    );
+    const fromIds = getAllIdsForExpected(expected.from);
+    const toIds = getAllIdsForExpected(expected.to);
 
     let found = false;
-    if (fromMatch?.matchedId && toMatch?.matchedId) {
-      const pair = [fromMatch.matchedId, toMatch.matchedId].sort().join('::');
-      found = detectedConnSet.has(pair);
-      // If not directly connected, check indirect via hallway/entryway
-      if (!found) {
-        found = isIndirectlyConnected(fromMatch.matchedId, toMatch.matchedId);
-      }
-    }
-
-    // Also try direct slug matching as fallback
-    if (!found) {
-      const fromSlug = slugify(expected.from);
-      const toSlug = slugify(expected.to);
-      const pair = [fromSlug, toSlug].sort().join('::');
-      found = detectedConnSet.has(pair);
-      if (!found) {
-        found = isIndirectlyConnected(fromSlug, toSlug);
+    // Try all combinations of from/to IDs
+    for (const fromId of fromIds) {
+      if (found) break;
+      for (const toId of toIds) {
+        if (found) break;
+        const pair = [fromId, toId].sort().join('::');
+        if (detectedConnSet.has(pair)) { found = true; break; }
+        if (isIndirectlyConnected(fromId, toId)) { found = true; break; }
       }
     }
 
