@@ -490,7 +490,7 @@ async function runReplay(frames, testName) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) { console.error('GEMINI_API_KEY not set'); process.exit(1); }
 
-  const model = process.env.REPLAY_MODEL || 'gemini-2.5-flash-native-audio-latest';
+  const model = process.env.REPLAY_MODEL || 'gemini-2.5-flash-native-audio-preview-12-2025';
   const homeState = new HomeState();
   const transcripts = [];
 
@@ -640,13 +640,13 @@ ${edgesList}
 Analyze the frames and the map. Return a JSON object with corrections:
 {
   "missingRooms": [{"name": "Room Name", "roomType": "type", "connectsTo": "Adjacent Room", "pathType": "doorway"}],
-  "duplicateRooms": [{"keep": "Room A", "remove": "Room B", "reason": "same physical room"}],
   "missingConnections": [{"from": "Room A", "to": "Room B", "pathType": "doorway"}],
   "missingFeatures": [{"room": "Room Name", "feature": "feature name"}],
   "roomTypeCorrections": [{"room": "Room Name", "correctType": "type"}]
 }
 
-Only include corrections you are confident about. Return ONLY the JSON, no other text.`;
+IMPORTANT: Do NOT merge or remove existing rooms. Only ADD missing rooms, connections, and features.
+Only include corrections you are confident about based on what you see in the frames. Return ONLY the JSON.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -679,29 +679,6 @@ Only include corrections you are confident about. Return ONLY the JSON, no other
           homeState.upsertEdge({ fromRoom: room.connectsTo, toRoom: room.name, pathType: room.pathType || 'doorway' });
         }
         console.log(`    + Added missing room: ${room.name}`);
-        applied++;
-      }
-    }
-
-    // Apply duplicate merges
-    for (const dup of corrections.duplicateRooms || []) {
-      const keepId = slugify(dup.keep);
-      const removeId = slugify(dup.remove);
-      if (homeState.rooms.has(keepId) && homeState.rooms.has(removeId)) {
-        const keepRoom = homeState.rooms.get(keepId);
-        const removeRoom = homeState.rooms.get(removeId);
-        // Merge features
-        for (const feat of removeRoom.features) {
-          if (!keepRoom.features.includes(feat)) keepRoom.features.push(feat);
-        }
-        // Redirect edges
-        for (const edge of homeState.edges) {
-          if (edge.fromId === removeId) edge.fromId = keepId;
-          if (edge.toId === removeId) edge.toId = keepId;
-        }
-        homeState.edges = homeState.edges.filter(e => e.fromId !== e.toId);
-        homeState.rooms.delete(removeId);
-        console.log(`    - Merged duplicate: "${dup.remove}" → "${dup.keep}"`);
         applied++;
       }
     }
@@ -754,39 +731,37 @@ Only include corrections you are confident about. Return ONLY the JSON, no other
 function consolidateRooms(homeState) {
   const rooms = [...homeState.rooms.values()];
 
-  // Find potential duplicate pairs — only merge when names suggest duplication
-  // (e.g., "Bedroom 1" and "Master Bedroom"), NOT numbered variants like "Bedroom 1" and "Bedroom 2"
+  // Find potential duplicate pairs — VERY conservative merging.
+  // Only merge rooms that are clearly the same physical room, e.g.:
+  // - "Bathroom" and "Bathroom 1" (unnumbered + numbered)
+  // - "Bedroom" and "Master Bedroom" ONLY if one has no connections (orphan)
   const merges = [];
 
-  // Extract the "base name" without numbers: "Bedroom 1" → "bedroom", "Master Bedroom" → "master bedroom"
-  function baseName(name) { return name.toLowerCase().replace(/\s*\d+\s*$/, '').trim(); }
-  function hasNumber(name) { return /\d+\s*$/.test(name); }
+  function stripNumber(name) { return name.replace(/\s*\d+\s*$/, '').trim(); }
+  function getNumber(name) { const m = name.match(/(\d+)\s*$/); return m ? parseInt(m[1]) : null; }
 
   for (let i = 0; i < rooms.length; i++) {
     for (let j = i + 1; j < rooms.length; j++) {
       const a = rooms[i], b = rooms[j];
       if (a.roomType !== b.roomType) continue;
 
-      // Skip if both rooms have different numbers (e.g., "Bedroom 1" and "Bedroom 2")
-      if (hasNumber(a.name) && hasNumber(b.name) && baseName(a.name) === baseName(b.name)) continue;
+      const aStripped = stripNumber(a.name).toLowerCase();
+      const bStripped = stripNumber(b.name).toLowerCase();
+      const aNum = getNumber(a.name);
+      const bNum = getNumber(b.name);
 
-      // Only merge if names are very similar (one includes the other's base name)
-      const aBase = baseName(a.name), bBase = baseName(b.name);
-      const nameOverlap = aBase.includes(bBase) || bBase.includes(aBase);
-      if (!nameOverlap) continue;
+      // Only merge if stripped names are IDENTICAL (e.g., "Bathroom" and "Bathroom 1")
+      // AND one has no number while the other does
+      if (aStripped !== bStripped) continue;
+      if (aNum !== null && bNum !== null) continue; // Both numbered = different rooms
 
-      // Check feature overlap
-      const aFeats = new Set(a.features.map(f => f.toLowerCase().replace(/\s*\([^)]*\)/g, '').trim()));
-      const bFeats = new Set(b.features.map(f => f.toLowerCase().replace(/\s*\([^)]*\)/g, '').trim()));
-      const shared = [...aFeats].filter(f => bFeats.has(f)).length;
-      const minFeats = Math.min(aFeats.size, bFeats.size);
+      // Also require that one room is an orphan (no connections) or has very few
+      const aConns = homeState.edges.filter(e => e.fromId === a.id || e.toId === a.id);
+      const bConns = homeState.edges.filter(e => e.fromId === b.id || e.toId === b.id);
+      if (aConns.length > 1 && bConns.length > 1) continue; // Both well-connected = probably different
 
-      if (minFeats >= 2 && shared / minFeats > 0.6) {
-        const aConns = homeState.edges.filter(e => e.fromId === a.id || e.toId === a.id);
-        const bConns = homeState.edges.filter(e => e.fromId === b.id || e.toId === b.id);
-        const [keep, remove] = aConns.length >= bConns.length ? [a, b] : [b, a];
-        merges.push({ keep: keep.id, remove: remove.id, reason: `name overlap + ${shared}/${minFeats} shared features` });
-      }
+      const [keep, remove] = aConns.length >= bConns.length ? [a, b] : [b, a];
+      merges.push({ keep: keep.id, remove: remove.id, reason: `same name pattern, orphan merge` });
     }
   }
 
