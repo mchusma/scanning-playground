@@ -591,7 +591,182 @@ async function runReplay(frames, testName) {
   // Pass 2: Review with regular Gemini API for corrections
   await reviewPass(homeState, frames, apiKey);
 
+  // Final step: force-directed layout to clean up room positions
+  forceDirectedLayout(homeState);
+
   return { homeState, transcripts };
+}
+
+/**
+ * Force-directed layout algorithm.
+ * Pulls connected rooms together, pushes overlapping rooms apart,
+ * and respects directional hints from edges.
+ */
+function forceDirectedLayout(homeState) {
+  const rooms = [...homeState.rooms.values()];
+  const edges = homeState.edges;
+  if (rooms.length < 2) return;
+
+  console.log('  Running force-directed layout...');
+
+  // Parameters
+  const ITERATIONS = 200;
+  const SPRING_K = 0.06;        // Spring constant — pulls connected rooms together
+  const REPULSION_K = 15000;    // Repulsion constant — pushes all rooms apart (higher = more spread)
+  const DAMPING = 0.90;         // Velocity damping per iteration
+  const MIN_DIST = 30;          // Minimum gap between rooms
+  const DIRECTION_BIAS = 0.25;  // How much to weight directional hints
+
+  // Initialize velocities
+  for (const room of rooms) {
+    room._vx = 0;
+    room._vy = 0;
+  }
+
+  // Pre-compute ideal distances for each edge based on room sizes
+  const edgeTargets = edges.map(edge => {
+    const from = homeState.rooms.get(edge.fromId);
+    const to = homeState.rooms.get(edge.toId);
+    if (!from || !to) return null;
+
+    // Ideal distance: rooms should be touching (half-widths + gap)
+    const dir = edge.anchorDirection;
+    let idealDist;
+    if (dir === 'north' || dir === 'south' || dir === 'straight' || dir === 'back' || dir === 'up' || dir === 'down') {
+      idealDist = from.h / 2 + to.h / 2 + MIN_DIST;
+    } else if (dir === 'east' || dir === 'west' || dir === 'left' || dir === 'right') {
+      idealDist = from.w / 2 + to.w / 2 + MIN_DIST;
+    } else {
+      // No direction — use average
+      idealDist = (from.w + from.h + to.w + to.h) / 4 + MIN_DIST;
+    }
+
+    return { from, to, idealDist, dir, edge };
+  }).filter(Boolean);
+
+  for (let iter = 0; iter < ITERATIONS; iter++) {
+    // Reset forces
+    for (const room of rooms) {
+      room._fx = 0;
+      room._fy = 0;
+    }
+
+    // 1. Repulsion between ALL room pairs (prevent overlaps)
+    for (let i = 0; i < rooms.length; i++) {
+      for (let j = i + 1; j < rooms.length; j++) {
+        const a = rooms[i], b = rooms[j];
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+        // Minimum separation based on room sizes
+        const minSep = (a.w + b.w) / 2 + MIN_DIST;
+        const minSepY = (a.h + b.h) / 2 + MIN_DIST;
+        const effectiveMin = Math.sqrt(minSep * minSep + minSepY * minSepY) / 2;
+
+        // Stronger repulsion when rooms are close/overlapping
+        const force = REPULSION_K / (dist * dist + 100);
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+
+        a._fx -= fx;
+        a._fy -= fy;
+        b._fx += fx;
+        b._fy += fy;
+
+        // Extra push if rooms actually overlap
+        if (Math.abs(dx) < (a.w + b.w) / 2 + 5 && Math.abs(dy) < (a.h + b.h) / 2 + 5) {
+          const pushX = dx > 0 ? minSep - Math.abs(dx) : -(minSep - Math.abs(dx));
+          const pushY = dy > 0 ? minSepY - Math.abs(dy) : -(minSepY - Math.abs(dy));
+          a._fx -= pushX * 0.1;
+          a._fy -= pushY * 0.1;
+          b._fx += pushX * 0.1;
+          b._fy += pushY * 0.1;
+        }
+      }
+    }
+
+    // 2. Spring forces along edges (pull connected rooms together)
+    for (const { from, to, idealDist, dir } of edgeTargets) {
+      let dx = to.x - from.x;
+      let dy = to.y - from.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+      // Spring force proportional to displacement from ideal distance
+      const displacement = dist - idealDist;
+      const force = SPRING_K * displacement;
+      let fx = (dx / dist) * force;
+      let fy = (dy / dist) * force;
+
+      // Directional bias: if we know the direction, bias the spring
+      if (dir && DIRECTION_VECTORS[dir]) {
+        const vec = DIRECTION_VECTORS[dir];
+        // Add a gentle pull in the expected direction
+        fx += vec.dx * Math.abs(displacement) * DIRECTION_BIAS;
+        fy += vec.dy * Math.abs(displacement) * DIRECTION_BIAS;
+      }
+
+      from._fx += fx;
+      from._fy += fy;
+      to._fx -= fx;
+      to._fy -= fy;
+    }
+
+    // 3. Centering force — pull rooms toward center of mass to prevent long chains
+    let cx = 0, cy = 0;
+    for (const room of rooms) { cx += room.x; cy += room.y; }
+    cx /= rooms.length;
+    cy /= rooms.length;
+    const CENTER_K = 0.01;
+    for (const room of rooms) {
+      room._fx += (cx - room.x) * CENTER_K;
+      room._fy += (cy - room.y) * CENTER_K;
+    }
+
+    // 4. Apply forces with damping
+    let maxMove = 0;
+    for (const room of rooms) {
+      room._vx = (room._vx + room._fx) * DAMPING;
+      room._vy = (room._vy + room._fy) * DAMPING;
+
+      // Clamp velocity to prevent instability
+      const speed = Math.sqrt(room._vx * room._vx + room._vy * room._vy);
+      if (speed > 30) {
+        room._vx = (room._vx / speed) * 30;
+        room._vy = (room._vy / speed) * 30;
+      }
+
+      room.x += room._vx;
+      room.y += room._vy;
+      maxMove = Math.max(maxMove, Math.abs(room._vx), Math.abs(room._vy));
+    }
+
+    // Early convergence
+    if (maxMove < 0.5 && iter > 20) break;
+  }
+
+  // Clean up temp properties
+  for (const room of rooms) {
+    delete room._vx;
+    delete room._vy;
+    delete room._fx;
+    delete room._fy;
+    // Round coordinates
+    room.x = Math.round(room.x);
+    room.y = Math.round(room.y);
+  }
+
+  // Normalize: shift all rooms so minimum x,y is at a reasonable origin
+  const minX = Math.min(...rooms.map(r => r.x - r.w / 2));
+  const minY = Math.min(...rooms.map(r => r.y - r.h / 2));
+  const offsetX = 100 - minX;
+  const offsetY = 100 - minY;
+  for (const room of rooms) {
+    room.x += offsetX;
+    room.y += offsetY;
+  }
+
+  console.log(`  Layout complete: ${rooms.length} rooms positioned`);
 }
 
 /**
@@ -946,9 +1121,11 @@ async function main() {
       // Run replay
       const { homeState, transcripts } = await runReplay(frames, test.name);
 
-      // Generate SVG
-      const svg = generateFloorPlanSVG(homeState, { debug: true, animate: true, title: `${test.name} Floor Plan` });
+      // Generate SVGs — clean version for viewing + debug version for analysis
+      const svg = generateFloorPlanSVG(homeState, { debug: false, animate: false, title: `${test.name} Floor Plan` });
       writeFileSync(path.join(OUTPUT_DIR, `${test.name}-floorplan.svg`), svg);
+      const svgDebug = generateFloorPlanSVG(homeState, { debug: true, animate: false, title: `${test.name} Floor Plan (Debug)` });
+      writeFileSync(path.join(OUTPUT_DIR, `${test.name}-floorplan-debug.svg`), svgDebug);
 
       // Generate asset inventory
       const inventory = generateAssetInventory(homeState, test.name);
