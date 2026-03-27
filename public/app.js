@@ -1,4 +1,5 @@
 import { GoogleGenAI, Modality } from '/genai/index.patched.mjs';
+import { generateFloorPlanSVG, svgToPng, downloadFile } from './svg-export.js';
 
 const els = {
   modelInput: document.getElementById('modelInput'),
@@ -24,6 +25,8 @@ const els = {
   debugState: document.getElementById('debugState'),
   debugMetrics: document.getElementById('debugMetrics'),
   debugLog: document.getElementById('debugLog'),
+  exportSvgBtn: document.getElementById('exportSvgBtn'),
+  exportPngBtn: document.getElementById('exportPngBtn'),
 };
 
 const floorCtx = els.floorCanvas.getContext('2d');
@@ -848,6 +851,23 @@ function placeRoomRelative(fromRoom, toRoom, preferredDirection) {
   };
 }
 
+// Infer roomType from name when not explicitly provided
+function inferRoomType(name, explicitType) {
+  if (explicitType && explicitType !== 'room') return explicitType;
+  const lower = name.toLowerCase();
+  const typeMap = [
+    [/kitchen/i, 'kitchen'], [/living\s*room|family\s*room|great\s*room/i, 'living room'],
+    [/dining/i, 'dining room'], [/bed\s*room|master\s*bed/i, 'bedroom'],
+    [/bath\s*room|ensuite|powder\s*room/i, 'bathroom'], [/hallway|corridor|hall\b/i, 'hallway'],
+    [/entry|foyer|lobby/i, 'entryway'], [/closet|wardrobe/i, 'closet'],
+    [/office|study|den/i, 'office'], [/laundry|utility/i, 'laundry room'],
+    [/garage/i, 'garage'], [/pantry/i, 'pantry'], [/stair/i, 'stairs'],
+    [/balcony|patio|deck|terrace|outdoor/i, 'outdoor'],
+  ];
+  for (const [regex, type] of typeMap) { if (regex.test(lower)) return type; }
+  return explicitType || 'room';
+}
+
 function upsertRoom({ name, roomType, notes, confidence }) {
   const normalizedName = (name || '').trim();
   if (!normalizedName) {
@@ -855,6 +875,7 @@ function upsertRoom({ name, roomType, notes, confidence }) {
   }
 
   const id = slugify(normalizedName);
+  const inferredType = inferRoomType(normalizedName, roomType);
   let room = state.home.rooms.get(id);
 
   if (!room) {
@@ -863,7 +884,7 @@ function upsertRoom({ name, roomType, notes, confidence }) {
     room = {
       id,
       name: normalizedName,
-      roomType: roomType || 'room',
+      roomType: inferredType,
       notes: notes || '',
       confidence: typeof confidence === 'number' ? confidence : 0.6,
       features: [],
@@ -880,7 +901,7 @@ function upsertRoom({ name, roomType, notes, confidence }) {
     state.home.rooms.set(id, room);
     addEvent(`Mapped room: ${room.name}`, 'map');
   } else {
-    room.roomType = roomType || room.roomType;
+    room.roomType = inferredType !== 'room' ? inferredType : room.roomType;
     room.notes = notes || room.notes;
     if (typeof confidence === 'number') {
       room.confidence = Math.max(0.1, Math.min(1, confidence));
@@ -2026,6 +2047,31 @@ function bindEvents() {
     els.debugToggle.addEventListener('change', () => {
       state.debug.enabled = Boolean(els.debugToggle.checked);
       renderDebugPanel();
+    });
+  }
+
+  if (els.exportSvgBtn) {
+    els.exportSvgBtn.addEventListener('click', () => {
+      const svg = generateFloorPlanSVG(state.home, { debug: state.debug.enabled, animate: false });
+      downloadFile(svg, `floor-plan-${Date.now()}.svg`);
+      debugLog('export', 'Downloaded SVG floor plan');
+    });
+  }
+
+  if (els.exportPngBtn) {
+    els.exportPngBtn.addEventListener('click', async () => {
+      try {
+        const svg = generateFloorPlanSVG(state.home, { debug: false, animate: false });
+        const pngUrl = await svgToPng(svg, 2);
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = `floor-plan-${Date.now()}.png`;
+        a.click();
+        debugLog('export', 'Downloaded PNG floor plan');
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'PNG export failed';
+        debugLog('export-error', msg);
+      }
     });
   }
 

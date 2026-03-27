@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node server.mjs",
     "start": "node server.mjs",
-    "test": "node --check server.mjs && node --check public/app.js"
+    "test": "node --check server.mjs && node --check public/app.js && node --check public/svg-export.js && node test-svg-export.mjs"
   },
   "keywords": [],
   "author": "",

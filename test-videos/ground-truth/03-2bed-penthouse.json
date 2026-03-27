@@ -1,0 +1,33 @@
+{
+  "_comment": "Ground truth for 03-2bed-penthouse.mp4 — $1.3M Atlanta 2-Story Penthouse POV Tour. Draft — refine after first viewing.",
+  "source": "https://www.youtube.com/watch?v=Lu6H0p01sGs",
+  "expectedRooms": [
+    { "name": "Living Room", "aliases": ["Lounge", "Great Room", "Family Room"], "roomType": "living room", "required": true },
+    { "name": "Kitchen", "aliases": ["Kitchenette"], "roomType": "kitchen", "required": true },
+    { "name": "Primary Bedroom", "aliases": ["Master Bedroom", "Bedroom 1", "Main Bedroom"], "roomType": "bedroom", "required": true },
+    { "name": "Second Bedroom", "aliases": ["Bedroom 2", "Guest Bedroom", "Guest Room"], "roomType": "bedroom", "required": true },
+    { "name": "Primary Bathroom", "aliases": ["Master Bath", "Bathroom 1", "Ensuite", "Ensuite Bathroom", "Ensuite Bathroom 1", "Master Bathroom"], "roomType": "bathroom", "required": true },
+    { "name": "Second Bathroom", "aliases": ["Bathroom 2", "Guest Bath", "Hall Bath"], "roomType": "bathroom", "required": false },
+    { "name": "Dining Room", "aliases": ["Dining Area"], "roomType": "dining room", "required": false },
+    { "name": "Entryway", "aliases": ["Entry", "Foyer", "Lobby"], "roomType": "entryway", "required": false },
+    { "name": "Balcony", "aliases": ["Terrace", "Patio", "Deck", "Rooftop"], "roomType": "outdoor", "required": false },
+    { "name": "Stairs", "aliases": ["Stairway", "Staircase"], "roomType": "hallway", "required": false }
+  ],
+  "expectedConnections": [
+    { "from": "Living Room", "to": "Kitchen" },
+    { "from": "Living Room", "to": "Dining Room" },
+    { "from": "Primary Bedroom", "to": "Primary Bathroom" },
+    { "from": "Stairs", "to": "Primary Bedroom", "pathType": "stairs" }
+  ],
+  "expectedFeatures": {
+    "Kitchen": ["Refrigerator", "Island", "Sink"],
+    "Primary Bedroom": ["Bed"],
+    "Living Room": ["Couch", "TV"]
+  },
+  "scoring": {
+    "minRooms": 5,
+    "maxReasonableRooms": 14,
+    "minConnections": 4,
+    "maxReasonableConnections": 18
+  }
+}

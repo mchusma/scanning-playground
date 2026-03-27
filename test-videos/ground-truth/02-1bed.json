@@ -1,0 +1,29 @@
+{
+  "_comment": "Ground truth for 02-1bed.mp4 — 2 Bedroom @ The Lakefront Residences walkthrough. Draft — refine after first run.",
+  "source": "https://www.youtube.com/watch?v=bW8JKuGPaX4",
+  "expectedRooms": [
+    { "name": "Living Room", "aliases": ["Lounge", "Family Room", "Great Room"], "roomType": "living room", "required": true },
+    { "name": "Kitchen", "aliases": ["Kitchenette"], "roomType": "kitchen", "required": true },
+    { "name": "Primary Bedroom", "aliases": ["Master Bedroom", "Bedroom 1", "Bedroom"], "roomType": "bedroom", "required": true },
+    { "name": "Second Bedroom", "aliases": ["Bedroom 2", "Guest Bedroom", "Guest Room"], "roomType": "bedroom", "required": true },
+    { "name": "Bathroom", "aliases": ["Bath", "Restroom", "Primary Bathroom", "Ensuite", "Bathroom 1", "Ensuite Bathroom"], "roomType": "bathroom", "required": true },
+    { "name": "Dining Room", "aliases": ["Dining Area", "Eating Area"], "roomType": "dining room", "required": false },
+    { "name": "Entryway", "aliases": ["Entry", "Foyer", "Front Door", "Hallway"], "roomType": "entryway", "required": false },
+    { "name": "Balcony", "aliases": ["Terrace", "Patio", "Deck"], "roomType": "outdoor", "required": false }
+  ],
+  "expectedConnections": [
+    { "from": "Living Room", "to": "Kitchen" },
+    { "from": "Primary Bedroom", "to": "Bathroom" }
+  ],
+  "expectedFeatures": {
+    "Kitchen": ["Refrigerator", "Sink"],
+    "Primary Bedroom": ["Bed"],
+    "Bathroom": ["Toilet", "Sink"]
+  },
+  "scoring": {
+    "minRooms": 3,
+    "maxReasonableRooms": 10,
+    "minConnections": 1,
+    "maxReasonableConnections": 12
+  }
+}

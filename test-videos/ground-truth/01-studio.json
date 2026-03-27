@@ -1,0 +1,28 @@
+{
+  "_comment": "Ground truth for 01-studio.mp4 — M1 Studio Walk-Through (Verve STL). Updated after first baseline run.",
+  "source": "https://www.youtube.com/watch?v=EFWuroXR8p4",
+  "expectedRooms": [
+    { "name": "Living Room", "aliases": ["Living Area", "Studio", "Main Room", "Great Room"], "roomType": "living room", "required": true },
+    { "name": "Kitchen", "aliases": ["Kitchenette"], "roomType": "kitchen", "required": true },
+    { "name": "Dining Room", "aliases": ["Dining Area", "Eating Area"], "roomType": "dining room", "required": false },
+    { "name": "Bathroom", "aliases": ["Bath", "Restroom"], "roomType": "bathroom", "required": false },
+    { "name": "Bedroom", "aliases": ["Sleeping Area", "Master Bedroom"], "roomType": "bedroom", "required": false },
+    { "name": "Closet", "aliases": ["Walk-in Closet", "Wardrobe"], "roomType": "closet", "required": false },
+    { "name": "Entryway", "aliases": ["Entry", "Foyer", "Front Door"], "roomType": "entryway", "required": false }
+  ],
+  "expectedConnections": [
+    { "from": "Living Room", "to": "Dining Room" },
+    { "from": "Dining Room", "to": "Kitchen" },
+    { "from": "Living Room", "to": "Kitchen" }
+  ],
+  "expectedFeatures": {
+    "Kitchen": ["Refrigerator", "Sink", "Countertop"],
+    "Living Room": ["Sofa", "TV"]
+  },
+  "scoring": {
+    "minRooms": 2,
+    "maxReasonableRooms": 8,
+    "minConnections": 1,
+    "maxReasonableConnections": 10
+  }
+}

@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SVG Floor Plan — Test Harness</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f0f4f2; color: #1a2a28; padding: 16px; }
+    h1 { font-size: 1.4rem; margin-bottom: 4px; }
+    .subtitle { color: #6a8a84; font-size: 0.9rem; margin-bottom: 16px; }
+
+    .layout { display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    .panel { background: white; border: 1px solid #d0ddd8; border-radius: 12px; padding: 16px; }
+    .panel h2 { font-size: 1rem; margin-bottom: 10px; border-bottom: 1px solid #e8eeeb; padding-bottom: 6px; }
+    .panel h3 { font-size: 0.85rem; margin: 12px 0 6px; color: #3a6a60; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+    .form-row.full { grid-template-columns: 1fr; }
+    label { font-size: 0.78rem; font-weight: 600; color: #3a6a60; text-transform: uppercase; letter-spacing: 0.04em; }
+    input, select { width: 100%; border: 1px solid #c0d0ca; border-radius: 8px; padding: 7px 10px; font-size: 0.88rem; font-family: inherit; }
+    input:focus, select:focus { outline: 2px solid rgba(15,157,135,0.3); border-color: #0f9d87; }
+
+    .btn { border: none; border-radius: 8px; padding: 8px 14px; font: 600 0.82rem/1 inherit; cursor: pointer; transition: transform 0.1s; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: linear-gradient(135deg, #049e90, #0662c3); color: white; }
+    .btn-secondary { background: #e8efeb; color: #2a4a44; }
+    .btn-danger { background: #fee2e2; color: #b44; }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+    .btn-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+
+    .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+    .preset-btn { text-align: left; padding: 8px 10px; }
+    .preset-btn small { display: block; font-weight: 400; color: #6a8a84; font-size: 0.75rem; margin-top: 2px; }
+
+    .preview-container { position: relative; }
+    .svg-preview { border: 1px solid #d0ddd8; border-radius: 8px; background: white; min-height: 300px; overflow: auto; padding: 8px; }
+    .svg-preview svg { width: 100%; height: auto; }
+    .img-preview { margin-top: 8px; border: 1px solid #d0ddd8; border-radius: 8px; background: #e8e8e8; min-height: 100px; overflow: hidden; }
+    .img-preview img { width: 100%; height: auto; display: block; }
+
+    .source-view { margin-top: 8px; }
+    .source-view pre { background: #1a2a28; color: #a0e0c0; border-radius: 8px; padding: 12px; font-size: 0.75rem; max-height: 300px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+
+    .diag-panel { margin-top: 8px; }
+    .diag-ok { color: #0a8; font-weight: 600; }
+    .diag-warn { color: #c80; }
+    .diag-error { color: #c44; font-weight: 600; }
+    .diag-info { color: #48a; }
+    .diag-entry { font-size: 0.82rem; padding: 2px 0; border-bottom: 1px solid #f0f4f2; }
+
+    .room-list { max-height: 200px; overflow: auto; }
+    .room-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; border-bottom: 1px solid #f0f4f2; font-size: 0.85rem; }
+    .room-item.is-current { background: #e8fef4; }
+    .room-item .room-meta { color: #6a8a84; font-size: 0.78rem; }
+
+    .edge-list { max-height: 150px; overflow: auto; }
+    .edge-item { padding: 3px 8px; border-bottom: 1px solid #f0f4f2; font-size: 0.82rem; }
+
+    .toggle-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 0.88rem; }
+    .toggle-row input { width: auto; }
+
+    .stats { font-size: 0.82rem; color: #5a8a80; margin: 8px 0; }
+
+    .tab-bar { display: flex; gap: 0; border-bottom: 2px solid #d0ddd8; margin-bottom: 8px; }
+    .tab { padding: 6px 14px; font: 600 0.82rem/1 inherit; cursor: pointer; border: none; background: none; color: #6a8a84; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: #0f9d87; border-bottom-color: #0f9d87; }
+  </style>
+</head>
+<body>
+  <h1>SVG Floor Plan Test Harness</h1>
+  <p class="subtitle">Build mock room layouts and preview the SVG output. No Gemini session needed.</p>
+
+  <div class="layout">
+    <!-- Left panel: controls -->
+    <div>
+      <div class="panel">
+        <h2>Presets</h2>
+        <div class="preset-grid">
+          <button class="btn btn-secondary preset-btn" data-preset="studio">Studio<small>1 room</small></button>
+          <button class="btn btn-secondary preset-btn" data-preset="1bed">1-Bed Apt<small>4 rooms</small></button>
+          <button class="btn btn-secondary preset-btn" data-preset="2bed">2-Bed House<small>7 rooms</small></button>
+          <button class="btn btn-secondary preset-btn" data-preset="3bed">3-Bed House<small>10 rooms</small></button>
+          <button class="btn btn-secondary preset-btn" data-preset="complex">Complex Layout<small>12+ rooms</small></button>
+          <button class="btn btn-secondary preset-btn" data-preset="stress">Stress Test<small>20 rooms</small></button>
+        </div>
+        <button class="btn btn-danger btn-sm" id="clearBtn">Clear All</button>
+      </div>
+
+      <div class="panel" style="margin-top: 12px;">
+        <h2>Add Room</h2>
+        <div class="form-row">
+          <div><label>Name</label><input id="roomName" placeholder="Kitchen"/></div>
+          <div><label>Type</label>
+            <select id="roomType">
+              <option value="room">room</option>
+              <option value="kitchen">kitchen</option>
+              <option value="bathroom">bathroom</option>
+              <option value="bedroom">bedroom</option>
+              <option value="living room">living room</option>
+              <option value="dining room">dining room</option>
+              <option value="office">office</option>
+              <option value="hallway">hallway</option>
+              <option value="entryway">entryway</option>
+              <option value="garage">garage</option>
+              <option value="laundry room">laundry room</option>
+              <option value="pantry">pantry</option>
+              <option value="closet">closet</option>
+              <option value="basement">basement</option>
+              <option value="patio">patio</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div><label>Confidence</label><input id="roomConf" type="number" min="0" max="1" step="0.1" value="0.8"/></div>
+          <div><label>Features (comma-sep)</label><input id="roomFeatures" placeholder="sink, island"/></div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="addRoomBtn">Add Room</button>
+      </div>
+
+      <div class="panel" style="margin-top: 12px;">
+        <h2>Connect Rooms</h2>
+        <div class="form-row">
+          <div><label>From</label><select id="edgeFrom"></select></div>
+          <div><label>To</label><select id="edgeTo"></select></div>
+        </div>
+        <div class="form-row">
+          <div><label>Path Type</label>
+            <select id="edgeType">
+              <option value="doorway">doorway</option>
+              <option value="archway">archway</option>
+              <option value="hallway">hallway</option>
+              <option value="stairs">stairs</option>
+              <option value="open-plan">open-plan</option>
+            </select>
+          </div>
+          <div><label>Direction</label>
+            <select id="edgeDir">
+              <option value="">auto</option>
+              <option value="north">north</option>
+              <option value="east">east</option>
+              <option value="south">south</option>
+              <option value="west">west</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="addEdgeBtn">Connect</button>
+      </div>
+
+      <div class="panel" style="margin-top: 12px;">
+        <h2>State</h2>
+        <div class="form-row">
+          <div><label>Current Location</label><select id="locationSelect"><option value="">None</option></select></div>
+          <div><label>Heading</label>
+            <select id="headingSelect">
+              <option value="north">north</option>
+              <option value="east">east</option>
+              <option value="south">south</option>
+              <option value="west">west</option>
+            </select>
+          </div>
+        </div>
+
+        <h3>Rooms (<span id="roomCount">0</span>)</h3>
+        <div id="roomList" class="room-list"></div>
+
+        <h3>Edges (<span id="edgeCount">0</span>)</h3>
+        <div id="edgeList" class="edge-list"></div>
+      </div>
+    </div>
+
+    <!-- Right panel: preview -->
+    <div>
+      <div class="panel preview-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h2 style="margin-bottom: 0; border: none; padding: 0;">Preview</h2>
+          <div class="btn-group" style="margin: 0;">
+            <button class="btn btn-secondary btn-sm" id="downloadSvgBtn">Download SVG</button>
+            <button class="btn btn-secondary btn-sm" id="downloadPngBtn">Download PNG</button>
+            <button class="btn btn-secondary btn-sm" id="copyBtn">Copy SVG</button>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <input type="checkbox" id="debugToggle" checked/><label for="debugToggle" style="text-transform: none; font-weight: 400;">Debug mode</label>
+          <input type="checkbox" id="animateToggle" checked/><label for="animateToggle" style="text-transform: none; font-weight: 400;">Animations</label>
+        </div>
+
+        <div class="tab-bar">
+          <button class="tab active" data-tab="inline">Inline SVG</button>
+          <button class="tab" data-tab="img">As &lt;img&gt;</button>
+          <button class="tab" data-tab="source">Source</button>
+          <button class="tab" data-tab="diag">Diagnostics</button>
+        </div>
+
+        <!-- Inline SVG preview (default) -->
+        <div id="tab-inline" class="svg-preview"></div>
+
+        <!-- img tag preview (tests cross-platform rendering) -->
+        <div id="tab-img" class="img-preview" style="display:none;"></div>
+
+        <!-- Source code view -->
+        <div id="tab-source" class="source-view" style="display:none;"><pre id="sourceCode"></pre></div>
+
+        <!-- Diagnostics -->
+        <div id="tab-diag" class="diag-panel" style="display:none;"><div id="diagOutput"></div></div>
+
+        <div class="stats" id="renderStats"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { generateFloorPlanSVG, svgToDataUrl, svgToPng, downloadFile, diagnoseHomeState } from './svg-export.js';
+
+    // ── Mock state (mirrors app.js structure) ─────────────────────────────
+    const homeState = {
+      rooms: new Map(),
+      edges: [],
+      locationRoomId: null,
+      heading: 'north',
+    };
+
+    let nextRoomIdx = 0;
+
+    function slugify(v) {
+      return v.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    }
+
+    // ── Room placement (simple grid for test harness) ─────────────────────
+    function pickPosition() {
+      const cols = 4;
+      const col = nextRoomIdx % cols;
+      const row = Math.floor(nextRoomIdx / cols);
+      nextRoomIdx++;
+      return {
+        x: 200 + col * 180,
+        y: 200 + row * 140,
+      };
+    }
+
+    function addRoom(name, type, confidence, features) {
+      const id = slugify(name);
+      if (homeState.rooms.has(id)) return homeState.rooms.get(id);
+      const pos = pickPosition();
+      const room = {
+        id,
+        name,
+        roomType: type || 'room',
+        confidence: confidence ?? 0.8,
+        features: features || [],
+        x: pos.x,
+        y: pos.y,
+        vx: 0, vy: 0,
+        createdAt: Date.now(),
+        spawnedAt: Date.now(),
+        lastSeen: Date.now(),
+        positionSource: 'test',
+      };
+      homeState.rooms.set(id, room);
+      return room;
+    }
+
+    function addEdge(fromName, toName, pathType, direction) {
+      const fromId = slugify(fromName);
+      const toId = slugify(toName);
+      const from = homeState.rooms.get(fromId);
+      const to = homeState.rooms.get(toId);
+      if (!from || !to || fromId === toId) return null;
+
+      // Check for existing
+      const existing = homeState.edges.find(e =>
+        (e.fromId === fromId && e.toId === toId) || (e.fromId === toId && e.toId === fromId)
+      );
+      if (existing) return existing;
+
+      // Place 'to' room relative to 'from' if direction given
+      if (direction) {
+        const vectors = { north: {x:0,y:-1}, south: {x:0,y:1}, east: {x:1,y:0}, west: {x:-1,y:0} };
+        const v = vectors[direction];
+        if (v) {
+          let nx = from.x + v.x * 180;
+          let ny = from.y + v.y * 140;
+          // Nudge if another room already occupies that spot — keep pushing in same direction
+          let attempts = 0;
+          while (attempts < 5) {
+            let collision = false;
+            for (const [rid, r] of homeState.rooms) {
+              if (rid !== toId && Math.abs(r.x - nx) < 10 && Math.abs(r.y - ny) < 10) {
+                collision = true;
+                break;
+              }
+            }
+            if (!collision) break;
+            // Offset perpendicular to the direction of travel
+            nx += v.y !== 0 ? 180 : 0;
+            ny += v.x !== 0 ? 140 : 0;
+            attempts++;
+          }
+          to.x = nx;
+          to.y = ny;
+        }
+      }
+
+      const edge = {
+        key: [fromId, toId].sort().join('::'),
+        fromId, toId,
+        pathType: pathType || 'doorway',
+        anchorFromId: direction ? fromId : null,
+        anchorDirection: direction || null,
+        updatedAt: Date.now(),
+      };
+      homeState.edges.push(edge);
+      return edge;
+    }
+
+    function clearAll() {
+      homeState.rooms.clear();
+      homeState.edges = [];
+      homeState.locationRoomId = null;
+      homeState.heading = 'north';
+      nextRoomIdx = 0;
+    }
+
+    // ── Presets ───────────────────────────────────────────────────────────
+    const PRESETS = {
+      studio: () => {
+        addRoom('Studio', 'living room', 0.9, ['bed', 'desk', 'kitchenette']);
+        homeState.locationRoomId = 'studio';
+      },
+      '1bed': () => {
+        addRoom('Living Room', 'living room', 0.9, ['sofa', 'TV']);
+        addRoom('Kitchen', 'kitchen', 0.85, ['fridge', 'stove', 'sink']);
+        addRoom('Bedroom', 'bedroom', 0.8, ['queen bed', 'dresser']);
+        addRoom('Bathroom', 'bathroom', 0.75, ['shower', 'toilet', 'vanity']);
+        addEdge('Living Room', 'Kitchen', 'open-plan', 'east');
+        addEdge('Living Room', 'Bedroom', 'doorway', 'south');
+        addEdge('Bedroom', 'Bathroom', 'doorway', 'east');
+        homeState.locationRoomId = 'living-room';
+      },
+      '2bed': () => {
+        addRoom('Entryway', 'entryway', 0.9, []);
+        addRoom('Living Room', 'living room', 0.9, ['sofa', 'TV', 'bookshelf']);
+        addRoom('Kitchen', 'kitchen', 0.85, ['fridge', 'stove', 'island']);
+        addRoom('Dining Room', 'dining room', 0.8, ['table', '6 chairs']);
+        addRoom('Primary Bedroom', 'bedroom', 0.85, ['king bed', 'closet']);
+        addRoom('Guest Bedroom', 'bedroom', 0.8, ['twin bed', 'desk']);
+        addRoom('Bathroom', 'bathroom', 0.75, ['tub', 'toilet', 'vanity']);
+        addEdge('Entryway', 'Living Room', 'archway', 'north');
+        addEdge('Living Room', 'Kitchen', 'open-plan', 'east');
+        addEdge('Kitchen', 'Dining Room', 'archway', 'north');
+        addEdge('Living Room', 'Primary Bedroom', 'doorway', 'south');
+        addEdge('Living Room', 'Guest Bedroom', 'doorway', 'west');
+        addEdge('Primary Bedroom', 'Bathroom', 'doorway', 'east');
+        homeState.locationRoomId = 'living-room';
+      },
+      '3bed': () => {
+        addRoom('Entryway', 'entryway', 0.95, []);
+        addRoom('Hallway', 'hallway', 0.9, []);
+        addRoom('Living Room', 'living room', 0.9, ['sofa', 'TV', 'fireplace']);
+        addRoom('Kitchen', 'kitchen', 0.9, ['fridge', 'stove', 'island', 'dishwasher']);
+        addRoom('Dining Room', 'dining room', 0.85, ['table', '8 chairs', 'hutch']);
+        addRoom('Primary Bedroom', 'bedroom', 0.85, ['king bed', 'walk-in closet']);
+        addRoom('Bedroom 2', 'bedroom', 0.8, ['queen bed', 'dresser']);
+        addRoom('Bedroom 3', 'bedroom', 0.75, ['twin beds', 'desk']);
+        addRoom('Primary Bath', 'bathroom', 0.85, ['shower', 'tub', 'double vanity']);
+        addRoom('Hall Bath', 'bathroom', 0.8, ['shower', 'toilet']);
+        // Layout:
+        // Entryway -- Living Room -- Kitchen -- Dining Room
+        //                  |
+        //               Hallway -- PrimBed -- PrimBath
+        //                  |
+        //              Bedroom 2 -- Bedroom 3 -- Hall Bath
+        addEdge('Entryway', 'Living Room', 'archway', 'east');
+        addEdge('Living Room', 'Kitchen', 'open-plan', 'east');
+        addEdge('Kitchen', 'Dining Room', 'archway', 'east');
+        addEdge('Living Room', 'Hallway', 'archway', 'south');
+        addEdge('Hallway', 'Primary Bedroom', 'doorway', 'east');
+        addEdge('Primary Bedroom', 'Primary Bath', 'doorway', 'east');
+        addEdge('Hallway', 'Bedroom 2', 'doorway', 'south');
+        addEdge('Bedroom 2', 'Bedroom 3', 'doorway', 'east');
+        addEdge('Bedroom 3', 'Hall Bath', 'doorway', 'east');
+        addEdge('Hallway', 'Kitchen', 'doorway');
+        homeState.locationRoomId = 'living-room';
+        homeState.heading = 'east';
+      },
+      complex: () => {
+        PRESETS['3bed']();
+        addRoom('Garage', 'garage', 0.9, ['2 cars', 'workbench']);
+        addRoom('Laundry Room', 'laundry room', 0.8, ['washer', 'dryer']);
+        addRoom('Pantry', 'pantry', 0.7, ['shelving']);
+        addEdge('Entryway', 'Garage', 'doorway', 'west');
+        addEdge('Kitchen', 'Pantry', 'doorway', 'north');
+        addEdge('Hallway', 'Laundry Room', 'doorway', 'west');
+      },
+      stress: () => {
+        const types = ['bedroom', 'bathroom', 'kitchen', 'living room', 'office', 'hallway', 'closet', 'pantry'];
+        for (let i = 0; i < 20; i++) {
+          addRoom(`Room ${i + 1}`, types[i % types.length], 0.5 + Math.random() * 0.5, [`feature-${i}`]);
+        }
+        for (let i = 0; i < 19; i++) {
+          addEdge(`Room ${i + 1}`, `Room ${i + 2}`, 'doorway', ['north', 'east', 'south', 'west'][i % 4]);
+        }
+        // Some cross-links
+        addEdge('Room 1', 'Room 5', 'hallway');
+        addEdge('Room 5', 'Room 10', 'stairs');
+        addEdge('Room 10', 'Room 15', 'archway');
+        homeState.locationRoomId = 'room-1';
+      },
+    };
+
+    // ── HTML escaping for safe innerHTML ────────────────────────────────
+    function escHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Rendering ─────────────────────────────────────────────────────────
+    let lastSvgString = '';
+    let activeTab = 'inline';
+
+    function render() {
+      const debug = document.getElementById('debugToggle').checked;
+      const animate = document.getElementById('animateToggle').checked;
+      const t0 = performance.now();
+
+      lastSvgString = generateFloorPlanSVG(homeState, {
+        debug,
+        animate,
+        title: homeState.rooms.size > 0 ? 'Floor Plan' : '',
+      });
+
+      const elapsed = (performance.now() - t0).toFixed(1);
+      const sizeKb = (new Blob([lastSvgString]).size / 1024).toFixed(1);
+
+      // Update all tabs
+      document.getElementById('tab-inline').innerHTML = lastSvgString;
+      document.getElementById('tab-img').innerHTML = `<img src="${svgToDataUrl(lastSvgString)}" alt="Floor plan SVG rendered in img tag"/>`;
+      document.getElementById('sourceCode').textContent = lastSvgString;
+
+      // Diagnostics
+      const diag = diagnoseHomeState(homeState);
+      const diagEl = document.getElementById('diagOutput');
+      let diagHtml = `<div class="${diag.ok ? 'diag-ok' : 'diag-error'}" style="margin-bottom:8px;">${diag.ok ? 'State OK' : 'Issues found'}</div>`;
+      diagHtml += `<div class="stats">Rooms: ${diag.roomCount} | Edges: ${diag.edgeCount} | Connected: ${diag.connectedRooms} | Isolated: ${diag.isolatedRooms}</div>`;
+      for (const issue of diag.issues) {
+        diagHtml += `<div class="diag-entry diag-${issue.level}">[${issue.level}] ${issue.msg}</div>`;
+      }
+      diagEl.innerHTML = diagHtml;
+
+      document.getElementById('renderStats').textContent = `Rendered in ${elapsed}ms | ${sizeKb} KB | ${homeState.rooms.size} rooms, ${homeState.edges.length} edges`;
+
+      updateDropdowns();
+      updateLists();
+    }
+
+    function updateDropdowns() {
+      const rooms = [...homeState.rooms.values()];
+      for (const sel of [document.getElementById('edgeFrom'), document.getElementById('edgeTo'), document.getElementById('locationSelect')]) {
+        const current = sel.value;
+        sel.innerHTML = sel.id === 'locationSelect' ? '<option value="">None</option>' : '';
+        for (const r of rooms) {
+          sel.innerHTML += `<option value="${escHtml(r.name)}" ${r.name === current ? 'selected' : ''}>${escHtml(r.name)}</option>`;
+        }
+      }
+    }
+
+    function updateLists() {
+      const roomListEl = document.getElementById('roomList');
+      const edgeListEl = document.getElementById('edgeList');
+      document.getElementById('roomCount').textContent = homeState.rooms.size;
+      document.getElementById('edgeCount').textContent = homeState.edges.length;
+
+      roomListEl.innerHTML = '';
+      for (const [id, room] of homeState.rooms) {
+        const isCurrent = id === homeState.locationRoomId;
+        roomListEl.innerHTML += `<div class="room-item ${isCurrent ? 'is-current' : ''}">
+          <span>${escHtml(room.name)} ${isCurrent ? '(here)' : ''}</span>
+          <span class="room-meta">${escHtml(room.roomType)} · ${Math.round(room.confidence * 100)}% · (${Math.round(room.x)},${Math.round(room.y)})</span>
+        </div>`;
+      }
+
+      edgeListEl.innerHTML = '';
+      for (const edge of homeState.edges) {
+        edgeListEl.innerHTML += `<div class="edge-item">${escHtml(edge.fromId)} → ${escHtml(edge.toId)} <span class="room-meta">${escHtml(edge.pathType)}${edge.anchorDirection ? ' · ' + escHtml(edge.anchorDirection) : ''}</span></div>`;
+      }
+    }
+
+    // ── Event handlers ────────────────────────────────────────────────────
+    // Presets
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        clearAll();
+        PRESETS[btn.dataset.preset]();
+        render();
+      });
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      clearAll();
+      render();
+    });
+
+    // Add room
+    document.getElementById('addRoomBtn').addEventListener('click', () => {
+      const name = document.getElementById('roomName').value.trim();
+      if (!name) return;
+      const type = document.getElementById('roomType').value;
+      const conf = parseFloat(document.getElementById('roomConf').value) || 0.8;
+      const feats = document.getElementById('roomFeatures').value.split(',').map(s => s.trim()).filter(Boolean);
+      addRoom(name, type, conf, feats);
+      document.getElementById('roomName').value = '';
+      document.getElementById('roomFeatures').value = '';
+      render();
+    });
+
+    // Add edge
+    document.getElementById('addEdgeBtn').addEventListener('click', () => {
+      const from = document.getElementById('edgeFrom').value;
+      const to = document.getElementById('edgeTo').value;
+      if (!from || !to) return;
+      const pathType = document.getElementById('edgeType').value;
+      const dir = document.getElementById('edgeDir').value || undefined;
+      addEdge(from, to, pathType, dir);
+      render();
+    });
+
+    // Location & heading
+    document.getElementById('locationSelect').addEventListener('change', (e) => {
+      homeState.locationRoomId = e.target.value ? slugify(e.target.value) : null;
+      render();
+    });
+    document.getElementById('headingSelect').addEventListener('change', (e) => {
+      homeState.heading = e.target.value;
+      render();
+    });
+
+    // Toggles
+    document.getElementById('debugToggle').addEventListener('change', render);
+    document.getElementById('animateToggle').addEventListener('change', render);
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeTab = tab.dataset.tab;
+        document.getElementById('tab-inline').style.display = activeTab === 'inline' ? '' : 'none';
+        document.getElementById('tab-img').style.display = activeTab === 'img' ? '' : 'none';
+        document.getElementById('tab-source').style.display = activeTab === 'source' ? '' : 'none';
+        document.getElementById('tab-diag').style.display = activeTab === 'diag' ? '' : 'none';
+      });
+    });
+
+    // Downloads
+    document.getElementById('downloadSvgBtn').addEventListener('click', () => {
+      downloadFile(lastSvgString, 'floor-plan.svg');
+    });
+    document.getElementById('downloadPngBtn').addEventListener('click', async () => {
+      try {
+        const pngUrl = await svgToPng(lastSvgString, 2);
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = 'floor-plan.png';
+        a.click();
+      } catch (err) {
+        alert('PNG conversion failed: ' + err.message);
+      }
+    });
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(lastSvgString).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy SVG', 1500);
+      });
+    });
+
+    // ── Initial render ────────────────────────────────────────────────────
+    render();
+  </script>
+</body>
+</html>
