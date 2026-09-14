@@ -1,6 +1,8 @@
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { createLiveRelay } from './live-relay.mjs';
+import { createPlanAssistant } from './homewalk-assistant.mjs';
 
 import dotenv from 'dotenv';
 import express from 'express';
@@ -14,7 +16,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = Number(process.env.PORT || 8787);
 const defaultModel =
-  process.env.LIVE_MODEL || 'gemini-2.5-flash-native-audio-preview-12-2025';
+  process.env.LIVE_MODEL || 'gemini-3.1-flash-live-preview';
 const apiKey = process.env.GEMINI_API_KEY;
 const LIVE_MODEL_CACHE_TTL_MS = 5 * 60 * 1000;
 const genaiWebIndexPath = path.join(__dirname, 'node_modules/@google/genai/dist/web/index.mjs');
@@ -78,9 +80,9 @@ async function getLiveModels() {
   modelNames.sort((a, b) => a.localeCompare(b));
 
   const exactPreferred = modelNames.find(
-    (name) => name === 'gemini-2.5-flash-native-audio-preview-12-2025',
+    (name) => name === 'gemini-3.1-flash-live-preview',
   );
-  const nativeLatest = modelNames.find((name) => name === 'gemini-2.5-flash-native-audio-latest');
+  const nativeLatest = modelNames.find((name) => name === defaultModel);
   const nativeAny = modelNames.find((name) => name.toLowerCase().includes('native-audio'));
   const recommendedModel = exactPreferred || nativeLatest || nativeAny || modelNames[0] || defaultModel;
 
@@ -91,6 +93,7 @@ async function getLiveModels() {
   return { models: [...modelNames], recommendedModel };
 }
 
+app.use('/api/homewalk/plans', createPlanAssistant());
 app.use(express.json({ limit: '1mb' }));
 
 app.get('/genai/index.patched.mjs', async (_req, res) => {
@@ -128,6 +131,7 @@ app.get('/vendor/p-retry/index.patched.js', async (_req, res) => {
 app.use('/genai', express.static(path.join(__dirname, 'node_modules/@google/genai/dist/web')));
 app.use('/vendor', express.static(path.join(__dirname, 'node_modules')));
 app.use('/test-output', express.static(path.join(__dirname, 'test-output')));
+app.use('/fixtures', express.static(path.join(__dirname, 'test-fixtures')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/favicon.ico', (_req, res) => {
@@ -213,6 +217,12 @@ app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-app.listen(port, () => {
+const live = createLiveRelay({ app, logDir: path.join(__dirname, 'test-output/live') });
+
+const server = app.listen(port, () => {
   console.log(`Gemini Live home scan demo running on http://localhost:${port}`);
+  for (const addr of live.lanAddresses()) {
+    console.log(`HomeWalk live link: phone → ${addr}:${port}   viewer → http://${addr}:${port}/homewalk-live.html`);
+  }
 });
+live.attach(server);

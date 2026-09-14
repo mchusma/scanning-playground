@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>HomeWalk can stream a live debug view of the walk to a Mac on this Wi-Fi network. Only when you turn it on.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>HomeWalk uses your location once per walk to point the floor plan north and place it on your building outline. Optional; never in the background.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>HomeWalk listens for the names of things you show so it can tick the prompt and pin what you said to the room. On-device when available.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

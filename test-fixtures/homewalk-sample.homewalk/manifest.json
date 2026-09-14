@@ -1,0 +1,12 @@
+{
+  "appVersion" : "0.1.0",
+  "exportedAt" : "2026-09-12T04:09:13Z",
+  "files" : [
+    "plan.json",
+    "plan.svg",
+    "manifest.json",
+    "checklist.txt"
+  ],
+  "schemaVersion" : 1,
+  "sessionID" : "E6B6693E-1CCE-4B01-B80C-429C19AF521A"
+}

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>HomeWalk · Adjust your plan</title><link rel="stylesheet" href="homewalk-adjust.css"></head>
+<body>
+<header><div><span class="eyebrow">HOMEWALK</span><h1>Adjust your plan</h1></div><span id="version">Open a capture to begin</span></header>
+<section id="loader" class="card"><p>Start with your captured or assembled plan.</p><label class="button">Open capture folder<input id="folder" type="file" webkitdirectory multiple hidden></label> <button id="sample">Try a sample</button></section>
+<div id="error" role="alert" hidden></div>
+<main id="workspace" hidden>
+<section class="plan-column">
+<div class="card drawing"><div class="toolbar"><span id="kind">Captured home</span><div><button id="undo">Undo</button><button id="reset">Reset</button><button id="export">Export</button></div></div><div id="canvas" aria-label="Editable floor plan"></div><p id="hint">Tap a room, then drag a wall to adjust it.</p><div id="draft" hidden><strong>Preview changes</strong><p id="draft-text"></p><button id="compare">Show current plan</button> <button class="primary" id="keep">Keep changes</button> <button id="discard">Discard</button></div></div>
+<div class="card" id="room-tools"><div class="row"><input id="room-name" aria-label="Room name"><button id="rename">Rename</button><button id="recording">Show recording</button></div><div class="row"><select id="neighbor" aria-label="Neighboring room"></select><button id="join">Snap together</button><button id="merge">Merge</button></div><div class="row"><span>Add divider</span><button id="split-x">Across width</button><button id="split-y">Across depth</button></div></div>
+<details class="card"><summary>Versions &amp; things to check</summary><select id="history" aria-label="Saved version"></select> <button id="restore">Restore version</button><ul id="warnings"></ul><p>Dashed boundaries are approximate. The building outline and recorded path stay anchored.</p></details>
+<video id="evidence-player" controls playsinline hidden></video>
+</section>
+<section class="card conversation"><div><h2>Keep refining it</h2><p>Tell me what looks wrong, or add a photo or video. I’ll use it where the connection is clear and ask when it isn’t.</p><button id="assemble">Assemble rooms from this walk</button><p class="small" id="assembly-note">Room names and transitions come from the recording. Boundaries start from the camera path and remain approximate.</p></div>
+<div id="messages" aria-live="polite"></div><div id="attachments"></div><form id="chat"><textarea id="message" rows="3" placeholder="The kitchen and dining area are one room…" aria-label="Message to plan assistant"></textarea><div class="row"><label class="button">Add photos or video<input id="attach" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,video/mp4,video/quicktime" multiple hidden></label><button class="primary" id="send">Send</button></div></form><p class="small">When you send a request, the plan, conversation, and supplied evidence are sent to Gemini for analysis. Changes stay in preview until you keep them.</p></section>
+</main><div id="status" role="status"></div><script type="module" src="homewalk-adjust.js"></script></body></html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HomeWalk · Live</title><link rel="stylesheet" href="plan-lab.css">
+<style>
+[hidden]{display:none!important}
+.live{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:start}
+#map{padding:14px;min-height:520px}#map svg{width:100%;height:auto;display:block}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:14px 0}.stats div{background:#faf8f2;border:1px solid #d8ded1;border-radius:10px;padding:10px 12px}.stats b{display:block;font-size:19px;color:#283e31;font-variant-numeric:tabular-nums}.stats span{font-size:10px;color:#708273;letter-spacing:1px;text-transform:uppercase}.stats .bad b{color:#a83a2a}.stats .good b{color:#3f7351}
+.panel{padding:18px}.panel label{display:grid;grid-template-columns:150px 1fr 60px;gap:8px;align-items:center;font-size:12px;margin:8px 0;color:#3f5747}.panel input[type=range]{width:100%}.panel .val{text-align:right;font-variant-numeric:tabular-nums;color:#263b33}.panel .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.panel h4{margin:16px 0 6px;font-size:11px;letter-spacing:1.5px;color:#708273}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#a83a2a;margin-right:6px}.dot.on{background:#3f7351}
+.log{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#657369;max-height:160px;overflow:auto;border-top:1px solid #e0e4d8;margin-top:12px;padding-top:8px;white-space:pre-wrap}
+</style></head>
+<body><header><a href="/">HOME ATLAS <span>/ HOMEWALK LIVE</span></a><span class="pill" id="pill"><span class="dot" id="dot"></span>Waiting for the phone</span></header>
+<main>
+<section class="intro"><div class="eyebrow">LIVE FROM THE PHONE · DEBUG</div><h1>Watch the walk. Turn the knobs.</h1><p>On the phone: Captures → About this build → Debug HUD on, then on the walk screen Tune → Live link → enter this Mac's address and Connect. Snapshots arrive about once a second. Sliders here apply on the phone immediately; the room being walked re-boxes from its stored samples.</p></section>
+<section class="stats" id="stats"></section>
+<section class="live">
+  <div class="drawing"><div class="toolbar"><div><div class="eyebrow">PLAN · METRES · LIVE</div><h2 id="title">—</h2></div><div class="buttons"><button id="hits" class="active">Hits</button><button id="path" class="active">Path</button></div></div><div id="map"></div><div class="controls"><span class="muted" id="gridNote"></span></div></div>
+  <aside><div class="panel">
+    <h4>ROOM BOX</h4>
+    <label>Pad to walls<input type="range" id="pad" min="0.1" max="1.0" step="0.05"><span class="val" id="pad-v"></span></label>
+    <label>Min side<input type="range" id="minSide" min="0.6" max="2.5" step="0.1"><span class="val" id="minSide-v"></span></label>
+    <label>Wall snap max<input type="range" id="sharedWallMaxShift" min="0.2" max="2.0" step="0.1"><span class="val" id="sharedWallMaxShift-v"></span></label>
+    <label>From hits (old)<input type="checkbox" id="measureFromHits"><span></span></label>
+    <h4>CROSSHAIR EVIDENCE</h4>
+    <label>Min steepness<input type="range" id="minRayFloorDot" min="0.1" max="0.8" step="0.05"><span class="val" id="minRayFloorDot-v"></span></label>
+    <label>Max hit dist<input type="range" id="maxHitDistance" min="1" max="8" step="0.5"><span class="val" id="maxHitDistance-v"></span></label>
+    <h4>WALL GRID</h4>
+    <label>Yaw votes needed<input type="range" id="yawMinSamples" min="10" max="200" step="10"><span class="val" id="yawMinSamples-v"></span></label>
+    <label>Yaw inlier frac<input type="range" id="yawMinInlierFraction" min="0.1" max="0.8" step="0.05"><span class="val" id="yawMinInlierFraction-v"></span></label>
+    <label>Manual angle<input type="checkbox" id="overrideOn"><span></span></label>
+    <label>Angle °<input type="range" id="overrideDeg" min="-45" max="45" step="0.5"><span class="val" id="overrideDeg-v"></span></label>
+    <div class="row"><button id="align">Align now</button><button id="rebox">Re-box rooms</button><button id="door">Through a door</button><button id="reset">Defaults</button></div>
+    <div class="log" id="log"></div>
+  </div></aside>
+</section>
+<footer>Debug link · Local Wi-Fi only · Snapshots logged to test-output/live/</footer></main>
+<script type="module" src="homewalk-live.js"></script></body></html>

@@ -1,0 +1,1142 @@
+{
+  "alignmentChecks" : [
+    {
+      "cameraPlan" : {
+        "x" : 5.87,
+        "y" : 4.72
+      },
+      "distanceMeters" : 0.18788294228055813,
+      "doorwayID" : "8A24CC78-937B-4565-A8C7-79116C229CBD",
+      "doorwayMidpoint" : {
+        "x" : 5.700000000000001,
+        "y" : 4.799999999999999
+      },
+      "id" : "7265C290-7342-48BE-8D90-6843B8D9BCC5",
+      "timestamp" : 1789186153.214087,
+      "trackingState" : "Tracking OK"
+    }
+  ],
+  "appVersion" : "0.1.0",
+  "createdAt" : 1789186153.2122688,
+  "deviceCapabilities" : {
+    "captureMode" : "simulated",
+    "lidarDepthSupported" : false,
+    "sceneReconstructionSupported" : false,
+    "worldTrackingSupported" : false
+  },
+  "doorways" : [
+    {
+      "connectedRoomIDs" : [
+        "87BC60A1-DB10-4703-AD76-3888B94F625E",
+        "16947BFB-5E99-46F4-8E17-27ECE1F81760"
+      ],
+      "endpointA" : {
+        "x" : 4,
+        "y" : 1.05
+      },
+      "endpointB" : {
+        "x" : 4,
+        "y" : 1.9500000000000002
+      },
+      "id" : "F5222698-F52D-4D5A-9324-02FFEBAA4FAE",
+      "wallEdgeIndex" : 1,
+      "wallRoomID" : "87BC60A1-DB10-4703-AD76-3888B94F625E",
+      "width" : 0.9000000000000001
+    },
+    {
+      "connectedRoomIDs" : [
+        "16947BFB-5E99-46F4-8E17-27ECE1F81760",
+        "8D607963-78D8-40AD-8C7F-ADE50C8D2923"
+      ],
+      "endpointA" : {
+        "x" : 5.700000000000001,
+        "y" : 4.349999999999998
+      },
+      "endpointB" : {
+        "x" : 5.700000000000001,
+        "y" : 5.249999999999999
+      },
+      "id" : "8A24CC78-937B-4565-A8C7-79116C229CBD",
+      "wallEdgeIndex" : 1,
+      "wallRoomID" : "16947BFB-5E99-46F4-8E17-27ECE1F81760",
+      "width" : 0.9000000000000012
+    }
+  ],
+  "events" : [
+    {
+      "detail" : "origin meters",
+      "entityIDs" : [
+
+      ],
+      "id" : "1777D59E-0DBC-4518-9BFD-1B4DA90A4DA8",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.213161,
+      "type" : "floorConfirmed"
+    },
+    {
+      "detail" : "video+audio requested",
+      "entityIDs" : [
+
+      ],
+      "id" : "27CBF5E4-E8B7-480E-85DF-C75938F38746",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.2132258,
+      "type" : "walkStarted"
+    },
+    {
+      "detail" : "Kitchen",
+      "entityIDs" : [
+
+      ],
+      "id" : "A1BC1491-90F5-4A50-A33A-5AF4DDAFD7D9",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.213523,
+      "type" : "walkRoomNamed"
+    },
+    {
+      "detail" : "20.0° from 0 headings",
+      "entityIDs" : [
+
+      ],
+      "id" : "B9265580-E1BD-4855-A16A-E148B2AAFDBB",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.213805,
+      "type" : "gridAligned"
+    },
+    {
+      "detail" : "Kitchen",
+      "entityIDs" : [
+        "87BC60A1-DB10-4703-AD76-3888B94F625E"
+      ],
+      "id" : "6B47205E-A690-423B-8010-E60F38BDCC7A",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.2138681,
+      "type" : "roomFinished"
+    },
+    {
+      "detail" : "twoEndpoints",
+      "entityIDs" : [
+        "87BC60A1-DB10-4703-AD76-3888B94F625E"
+      ],
+      "id" : "2A38E47F-E217-4887-8AA1-032252B9C80A",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.2138839,
+      "type" : "doorwayDraft"
+    },
+    {
+      "detail" : "walk",
+      "entityIDs" : [
+        "87BC60A1-DB10-4703-AD76-3888B94F625E"
+      ],
+      "id" : "D2006ED1-C2DD-4B94-BF16-DA7105C54BAD",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.2138891,
+      "type" : "throughDoor"
+    },
+    {
+      "detail" : "Hallway",
+      "entityIDs" : [
+
+      ],
+      "id" : "9445CC15-B498-4C21-AAC2-3644008C10D4",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.213934,
+      "type" : "walkRoomNamed"
+    },
+    {
+      "detail" : "0.30 m",
+      "entityIDs" : [
+        "16947BFB-5E99-46F4-8E17-27ECE1F81760"
+      ],
+      "id" : "5129E572-7831-403E-9A1F-02A8694662AC",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.213992,
+      "type" : "sharedWallSnap"
+    },
+    {
+      "detail" : "Hallway",
+      "entityIDs" : [
+        "16947BFB-5E99-46F4-8E17-27ECE1F81760"
+      ],
+      "id" : "586719B3-40EF-4AB0-A3D7-D7EE1D7BFE7B",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.214007,
+      "type" : "roomFinished"
+    },
+    {
+      "detail" : "twoEndpoints",
+      "entityIDs" : [
+        "16947BFB-5E99-46F4-8E17-27ECE1F81760"
+      ],
+      "id" : "190DBA7D-8A02-4AAF-9FEB-9CC51D78F20F",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.2140179,
+      "type" : "doorwayDraft"
+    },
+    {
+      "detail" : "walk",
+      "entityIDs" : [
+        "16947BFB-5E99-46F4-8E17-27ECE1F81760"
+      ],
+      "id" : "B83B1CAB-BA63-4DC6-AAB3-EA41431A70BB",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.214023,
+      "type" : "throughDoor"
+    },
+    {
+      "detail" : "Bedroom",
+      "entityIDs" : [
+
+      ],
+      "id" : "069676EC-DD4D-4C77-87F7-FF6491272E6E",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.214062,
+      "type" : "walkRoomNamed"
+    },
+    {
+      "detail" : "Major appliances noted",
+      "entityIDs" : [
+
+      ],
+      "id" : "469121D4-0D03-4C55-AE7B-95A406127C67",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.214069,
+      "type" : "checklist"
+    },
+    {
+      "detail" : "Electrical panel shown",
+      "entityIDs" : [
+
+      ],
+      "id" : "BF212B4F-BC8C-4BFE-8081-18A63FC62E5A",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.214075,
+      "type" : "checklist"
+    },
+    {
+      "detail" : "0.19 m",
+      "entityIDs" : [
+        "8A24CC78-937B-4565-A8C7-79116C229CBD"
+      ],
+      "id" : "7FC49CC8-248B-422E-904E-C0D56232A6A5",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.2140942,
+      "type" : "alignmentCheck"
+    },
+    {
+      "detail" : "0.45 m",
+      "entityIDs" : [
+        "8D607963-78D8-40AD-8C7F-ADE50C8D2923"
+      ],
+      "id" : "00C2FF08-F7DE-456D-A9CF-ABA6FFC986E6",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.2141519,
+      "type" : "sharedWallSnap"
+    },
+    {
+      "detail" : "Bedroom",
+      "entityIDs" : [
+        "8D607963-78D8-40AD-8C7F-ADE50C8D2923"
+      ],
+      "id" : "AC49FBF5-A2FA-4EB3-B949-19F094C527FB",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.214169,
+      "type" : "roomFinished"
+    },
+    {
+      "detail" : "4.05 x 3.02",
+      "entityIDs" : [
+        "87BC60A1-DB10-4703-AD76-3888B94F625E"
+      ],
+      "id" : "55405340-12E4-490C-A163-E53697F422CA",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.214195,
+      "type" : "tapeSize"
+    },
+    {
+      "detail" : "1.45 x 6.10",
+      "entityIDs" : [
+        "16947BFB-5E99-46F4-8E17-27ECE1F81760"
+      ],
+      "id" : "6C40E215-0B90-4F73-A034-559679A5E0B3",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.214203,
+      "type" : "tapeSize"
+    },
+    {
+      "detail" : "confirmed",
+      "entityIDs" : [
+        "87BC60A1-DB10-4703-AD76-3888B94F625E"
+      ],
+      "id" : "0EC61CC0-117C-43B7-846B-7B8507995ADB",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.21423,
+      "type" : "observation"
+    },
+    {
+      "detail" : "walk-video.mov",
+      "entityIDs" : [
+
+      ],
+      "id" : "6DE9316B-29DC-4672-950B-18D6655894FF",
+      "status" : "confirmed",
+      "timestamp" : 1789186153.2142801,
+      "type" : "media"
+    }
+  ],
+  "floor" : {
+    "basis" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 0,
+        "z" : 0
+      },
+      "planeID" : "simulated-floor",
+      "segmentID" : "CD9AACB8-85FF-4C27-8D0E-456D61A39AE2",
+      "xAxis" : {
+        "x" : 0.9396926207859084,
+        "y" : 0,
+        "z" : 0.3420201433256687
+      },
+      "yAxis" : {
+        "x" : 0,
+        "y" : 1,
+        "z" : 0
+      },
+      "zAxis" : {
+        "x" : -0.3420201433256687,
+        "y" : 0,
+        "z" : 0.9396926207859084
+      }
+    },
+    "confirmedAt" : 1789186153.2131538,
+    "gridAngle" : 0.3490658503988659
+  },
+  "inProgress" : {
+    "accountManagerJoined" : false,
+    "activeRoomID" : "87BC60A1-DB10-4703-AD76-3888B94F625E",
+    "audioRelativePath" : "walk-audio.m4a",
+    "checklist" : [
+      {
+        "category" : "insurance",
+        "done" : true,
+        "id" : "CF4E396E-DECF-4F4D-B74C-CC687CEC05F1",
+        "notes" : "",
+        "title" : "Major appliances noted"
+      },
+      {
+        "category" : "insurance",
+        "done" : false,
+        "id" : "E0E8DBC5-099F-43E5-9DB6-16AEBEF824C9",
+        "notes" : "",
+        "title" : "HVAC \/ water heater shown"
+      },
+      {
+        "category" : "insurance",
+        "done" : true,
+        "id" : "C2F223C5-4FAC-41BA-9ABD-1AD1218019AC",
+        "notes" : "",
+        "title" : "Electrical panel shown"
+      },
+      {
+        "category" : "insurance",
+        "done" : false,
+        "id" : "DAA14350-4495-4A86-8DA7-A2D36B96DC29",
+        "notes" : "",
+        "title" : "Valuables \/ serial numbers"
+      },
+      {
+        "category" : "maintenance",
+        "done" : false,
+        "id" : "FA62C637-0B11-43FB-B050-B1C090B74893",
+        "notes" : "",
+        "title" : "Water shutoff shown"
+      },
+      {
+        "category" : "maintenance",
+        "done" : false,
+        "id" : "3C1C080C-3B6B-488F-AE3C-7D116185C6BE",
+        "notes" : "",
+        "title" : "Filter \/ breaker locations"
+      },
+      {
+        "category" : "guidebook",
+        "done" : false,
+        "id" : "C18B5E5D-AC20-4DD5-8F45-A44A61F84AD3",
+        "notes" : "",
+        "title" : "How to use this room"
+      },
+      {
+        "category" : "guidebook",
+        "done" : false,
+        "id" : "F6E35144-41C8-49D3-97E7-1068974EF232",
+        "notes" : "",
+        "title" : "Anything that often breaks"
+      }
+    ],
+    "lastFinishedRoomID" : "8D607963-78D8-40AD-8C7F-ADE50C8D2923",
+    "overseerStatus" : "guide-listening",
+    "phase" : "placingDoorway",
+    "points" : [
+
+    ],
+    "promptQueue" : [
+
+    ],
+    "snapEnabled" : false,
+    "videoRelativePath" : "walk-video.mov",
+    "walkPoses" : [
+
+    ],
+    "walkRecording" : false,
+    "walkRoomStartedAt" : 1789186153.21416,
+    "walkSamples" : [
+
+    ]
+  },
+  "media" : {
+    "audioPath" : "walk-audio.m4a",
+    "audioStartedAt" : 1789186153.213161,
+    "videoDroppedFrames" : 0,
+    "videoEndedAt" : 1789186153.21423,
+    "videoFrames" : 900,
+    "videoHeight" : 1440,
+    "videoPath" : "walk-video.mov",
+    "videoStartFrameTimestamp" : 1000,
+    "videoStartedAt" : 1789186153.213161,
+    "videoTargetFPS" : 15,
+    "videoWidth" : 1920
+  },
+  "mismatches" : [
+
+  ],
+  "name" : "Sample house",
+  "observations" : [
+    {
+      "endedAt" : 1789186153.2142181,
+      "id" : "020AD848-7B26-4CDF-AD94-9B6CFB3143F2",
+      "roomID" : "87BC60A1-DB10-4703-AD76-3888B94F625E",
+      "source" : "typed",
+      "spanningTransition" : false,
+      "startedAt" : 1789186153.2142181,
+      "status" : "confirmed",
+      "text" : "Dishwasher leaks if the top rack is overloaded."
+    }
+  ],
+  "rooms" : [
+    {
+      "capturedPoints" : [
+        {
+          "id" : "2685C691-8ACA-4127-A174-C46E97403D62",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : -0.5,
+            "y" : -0.5
+          },
+          "rawWorld" : {
+            "x" : -0.2988362387301199,
+            "y" : 0,
+            "z" : -0.6408563820557885
+          },
+          "snappedPlan" : {
+            "x" : -0.5,
+            "y" : -0.5
+          },
+          "wasSnapped" : false
+        },
+        {
+          "id" : "2DAA22D9-BDB6-495A-936D-256014FEB05A",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : 4,
+            "y" : -0.5
+          },
+          "rawWorld" : {
+            "x" : 3.929780554806468,
+            "y" : 0,
+            "z" : 0.8982342629097206
+          },
+          "snappedPlan" : {
+            "x" : 4,
+            "y" : -0.5
+          },
+          "wasSnapped" : false
+        },
+        {
+          "id" : "4CEAAEEF-1379-445E-A028-B7FD3FAF3D36",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : 4,
+            "y" : 3.5000000000000004
+          },
+          "rawWorld" : {
+            "x" : 2.561699981503793,
+            "y" : 0,
+            "z" : 4.657004746053355
+          },
+          "snappedPlan" : {
+            "x" : 4,
+            "y" : 3.5000000000000004
+          },
+          "wasSnapped" : false
+        },
+        {
+          "id" : "24DB5951-943B-496F-B084-1EAAC1CDECFC",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : -0.5,
+            "y" : 3.5000000000000004
+          },
+          "rawWorld" : {
+            "x" : -1.6669168120327948,
+            "y" : 0,
+            "z" : 3.1179141010878455
+          },
+          "snappedPlan" : {
+            "x" : -0.5,
+            "y" : 3.5000000000000004
+          },
+          "wasSnapped" : false
+        }
+      ],
+      "createdAt" : 1789186153.213848,
+      "doorTapPoint" : {
+        "x" : 4,
+        "y" : 1.5
+      },
+      "editedPolygon" : [
+        {
+          "x" : -0.5,
+          "y" : -0.5
+        },
+        {
+          "x" : 4,
+          "y" : -0.5
+        },
+        {
+          "x" : 4,
+          "y" : 3.5000000000000004
+        },
+        {
+          "x" : -0.5,
+          "y" : 3.5000000000000004
+        }
+      ],
+      "id" : "87BC60A1-DB10-4703-AD76-3888B94F625E",
+      "isApproximate" : true,
+      "name" : "Kitchen",
+      "revision" : 1,
+      "tapeSize" : {
+        "x" : 4.05,
+        "y" : 3.02
+      },
+      "type" : "kitchen",
+      "walkEndedAt" : 1789186153.21385,
+      "walkPath" : [
+        {
+          "x" : 0,
+          "y" : 0
+        },
+        {
+          "x" : 4,
+          "y" : 0
+        },
+        {
+          "x" : 4,
+          "y" : 3.0000000000000004
+        },
+        {
+          "x" : 0,
+          "y" : 3
+        },
+        {
+          "x" : -1.3877787807814457e-17,
+          "y" : 0.3
+        },
+        {
+          "x" : 4,
+          "y" : 1.5
+        }
+      ],
+      "walkPoses" : [
+        {
+          "camera" : {
+            "x" : 0,
+            "y" : 0
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 0,
+            "y" : 0
+          },
+          "t" : 1789186153.213231
+        },
+        {
+          "camera" : {
+            "x" : 4,
+            "y" : 0
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 4,
+            "y" : 0
+          },
+          "t" : 1789186153.213259
+        },
+        {
+          "camera" : {
+            "x" : 4,
+            "y" : 3.0000000000000004
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 4,
+            "y" : 3.0000000000000004
+          },
+          "t" : 1789186153.213266
+        },
+        {
+          "camera" : {
+            "x" : 0,
+            "y" : 3
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 0,
+            "y" : 3
+          },
+          "t" : 1789186153.2132711
+        },
+        {
+          "camera" : {
+            "x" : -1.3877787807814457e-17,
+            "y" : 0.3
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : -1.3877787807814457e-17,
+            "y" : 0.3
+          },
+          "t" : 1789186153.2132769
+        },
+        {
+          "camera" : {
+            "x" : 4,
+            "y" : 1.5
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 4,
+            "y" : 1.5
+          },
+          "t" : 1789186153.213283
+        }
+      ],
+      "walkStartedAt" : 1789186153.213173,
+      "walkTrail" : [
+        {
+          "x" : 0,
+          "y" : 0
+        },
+        {
+          "x" : 4,
+          "y" : 0
+        },
+        {
+          "x" : 4,
+          "y" : 3.0000000000000004
+        },
+        {
+          "x" : 0,
+          "y" : 3
+        },
+        {
+          "x" : -1.3877787807814457e-17,
+          "y" : 0.3
+        },
+        {
+          "x" : 4,
+          "y" : 1.5
+        }
+      ]
+    },
+    {
+      "capturedPoints" : [
+        {
+          "id" : "467CB95A-74AD-48DE-A316-FB22EBFD861E",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : 3.700000000000001,
+            "y" : -0.4999999999999998
+          },
+          "rawWorld" : {
+            "x" : 3.6478727685706964,
+            "y" : 0,
+            "z" : 0.7956282199120206
+          },
+          "snappedPlan" : {
+            "x" : 3.700000000000001,
+            "y" : -0.4999999999999998
+          },
+          "wasSnapped" : false
+        },
+        {
+          "id" : "82D99C2B-C1F7-490E-848D-B7BF6A352574",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : 5.700000000000001,
+            "y" : -0.4999999999999998
+          },
+          "rawWorld" : {
+            "x" : 5.527258010142513,
+            "y" : 0,
+            "z" : 1.4796685065633581
+          },
+          "snappedPlan" : {
+            "x" : 5.700000000000001,
+            "y" : -0.4999999999999998
+          },
+          "wasSnapped" : false
+        },
+        {
+          "id" : "D49E4E4A-39EE-43CA-8FD7-3DABEDFFE70E",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : 5.700000000000001,
+            "y" : 6.5
+          },
+          "rawWorld" : {
+            "x" : 3.133117006862832,
+            "y" : 0,
+            "z" : 8.057516852064717
+          },
+          "snappedPlan" : {
+            "x" : 5.700000000000001,
+            "y" : 6.5
+          },
+          "wasSnapped" : false
+        },
+        {
+          "id" : "367E1084-4992-4A08-9BF2-D84A6176F4EE",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : 3.700000000000001,
+            "y" : 6.5
+          },
+          "rawWorld" : {
+            "x" : 1.2537317652910156,
+            "y" : 0,
+            "z" : 7.373476565413379
+          },
+          "snappedPlan" : {
+            "x" : 3.700000000000001,
+            "y" : 6.5
+          },
+          "wasSnapped" : false
+        }
+      ],
+      "createdAt" : 1789186153.213959,
+      "doorTapPoint" : {
+        "x" : 5.700000000000001,
+        "y" : 4.799999999999999
+      },
+      "editedPolygon" : [
+        {
+          "x" : 4,
+          "y" : -0.4999999999999998
+        },
+        {
+          "x" : 5.700000000000001,
+          "y" : -0.4999999999999998
+        },
+        {
+          "x" : 5.700000000000001,
+          "y" : 6.5
+        },
+        {
+          "x" : 4,
+          "y" : 6.5
+        }
+      ],
+      "id" : "16947BFB-5E99-46F4-8E17-27ECE1F81760",
+      "isApproximate" : true,
+      "name" : "Hallway",
+      "revision" : 1,
+      "tapeSize" : {
+        "x" : 1.45,
+        "y" : 6.1
+      },
+      "type" : "hallway",
+      "walkEndedAt" : 1789186153.2139611,
+      "walkPath" : [
+        {
+          "x" : 4.200000000000001,
+          "y" : 1.5
+        },
+        {
+          "x" : 4.6000000000000005,
+          "y" : 2.220446049250313e-16
+        },
+        {
+          "x" : 4.6,
+          "y" : 6
+        },
+        {
+          "x" : 5.6,
+          "y" : 6
+        },
+        {
+          "x" : 5.6,
+          "y" : 0.2000000000000004
+        },
+        {
+          "x" : 5.700000000000001,
+          "y" : 4.799999999999999
+        }
+      ],
+      "walkPoses" : [
+        {
+          "camera" : {
+            "x" : 4.200000000000001,
+            "y" : 1.5
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 4.200000000000001,
+            "y" : 1.5
+          },
+          "t" : 1789186153.213902
+        },
+        {
+          "camera" : {
+            "x" : 4.6000000000000005,
+            "y" : 2.220446049250313e-16
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 4.6000000000000005,
+            "y" : 2.220446049250313e-16
+          },
+          "t" : 1789186153.213908
+        },
+        {
+          "camera" : {
+            "x" : 4.6,
+            "y" : 6
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 4.6,
+            "y" : 6
+          },
+          "t" : 1789186153.213913
+        },
+        {
+          "camera" : {
+            "x" : 5.6,
+            "y" : 6
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 5.6,
+            "y" : 6
+          },
+          "t" : 1789186153.213918
+        },
+        {
+          "camera" : {
+            "x" : 5.6,
+            "y" : 0.2000000000000004
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 5.6,
+            "y" : 0.2000000000000004
+          },
+          "t" : 1789186153.213923
+        },
+        {
+          "camera" : {
+            "x" : 5.700000000000001,
+            "y" : 4.799999999999999
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 5.700000000000001,
+            "y" : 4.799999999999999
+          },
+          "t" : 1789186153.213928
+        }
+      ],
+      "walkStartedAt" : 1789186153.213859,
+      "walkTrail" : [
+        {
+          "x" : 4.200000000000001,
+          "y" : 1.5
+        },
+        {
+          "x" : 4.6000000000000005,
+          "y" : 2.220446049250313e-16
+        },
+        {
+          "x" : 4.6,
+          "y" : 6
+        },
+        {
+          "x" : 5.6,
+          "y" : 6
+        },
+        {
+          "x" : 5.6,
+          "y" : 0.2000000000000004
+        },
+        {
+          "x" : 5.700000000000001,
+          "y" : 4.799999999999999
+        }
+      ],
+      "wallSnapShift" : 0.29999999999999893
+    },
+    {
+      "capturedPoints" : [
+        {
+          "id" : "605476E2-13D3-49F9-B764-2F6696858423",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : 5.25,
+            "y" : 2.8999999999999995
+          },
+          "rawWorld" : {
+            "x" : 3.94152784348158,
+            "y" : 0,
+            "z" : 4.520714352738895
+          },
+          "snappedPlan" : {
+            "x" : 5.25,
+            "y" : 2.8999999999999995
+          },
+          "wasSnapped" : false
+        },
+        {
+          "id" : "92008FE8-9BAE-455D-B7C6-91AC1621043D",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : 10.1,
+            "y" : 2.8999999999999995
+          },
+          "rawWorld" : {
+            "x" : 8.499037054293236,
+            "y" : 0,
+            "z" : 6.179512047868387
+          },
+          "snappedPlan" : {
+            "x" : 10.1,
+            "y" : 2.8999999999999995
+          },
+          "wasSnapped" : false
+        },
+        {
+          "id" : "A064560B-0C6D-4CD5-A9D4-80F6F8C9853A",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : 10.1,
+            "y" : 7.300000000000001
+          },
+          "rawWorld" : {
+            "x" : 6.994148423660293,
+            "y" : 0,
+            "z" : 10.314159579326386
+          },
+          "snappedPlan" : {
+            "x" : 10.1,
+            "y" : 7.300000000000001
+          },
+          "wasSnapped" : false
+        },
+        {
+          "id" : "459DD3E3-B6E9-4E16-A03B-FA9E1A3F968B",
+          "isApproximate" : true,
+          "rawPlan" : {
+            "x" : 5.25,
+            "y" : 7.300000000000001
+          },
+          "rawWorld" : {
+            "x" : 2.436639212848637,
+            "y" : 0,
+            "z" : 8.655361884196893
+          },
+          "snappedPlan" : {
+            "x" : 5.25,
+            "y" : 7.300000000000001
+          },
+          "wasSnapped" : false
+        }
+      ],
+      "createdAt" : 1789186153.2141352,
+      "editedPolygon" : [
+        {
+          "x" : 5.700000000000001,
+          "y" : 2.8999999999999995
+        },
+        {
+          "x" : 10.1,
+          "y" : 2.8999999999999995
+        },
+        {
+          "x" : 10.1,
+          "y" : 7.300000000000001
+        },
+        {
+          "x" : 5.700000000000001,
+          "y" : 7.300000000000001
+        }
+      ],
+      "id" : "8D607963-78D8-40AD-8C7F-ADE50C8D2923",
+      "isApproximate" : true,
+      "name" : "Bedroom",
+      "revision" : 1,
+      "type" : "bedroom",
+      "walkEndedAt" : 1789186153.214137,
+      "walkPath" : [
+        {
+          "x" : 5.9,
+          "y" : 4.8
+        },
+        {
+          "x" : 6.200000000000001,
+          "y" : 3.3999999999999995
+        },
+        {
+          "x" : 9.6,
+          "y" : 3.4
+        },
+        {
+          "x" : 9.6,
+          "y" : 6.8
+        },
+        {
+          "x" : 6.2,
+          "y" : 6.800000000000001
+        },
+        {
+          "x" : 5.75,
+          "y" : 4.8
+        }
+      ],
+      "walkPoses" : [
+        {
+          "camera" : {
+            "x" : 5.9,
+            "y" : 4.8
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 5.9,
+            "y" : 4.8
+          },
+          "t" : 1789186153.214028
+        },
+        {
+          "camera" : {
+            "x" : 6.200000000000001,
+            "y" : 3.3999999999999995
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 6.200000000000001,
+            "y" : 3.3999999999999995
+          },
+          "t" : 1789186153.214034
+        },
+        {
+          "camera" : {
+            "x" : 9.6,
+            "y" : 3.4
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 9.6,
+            "y" : 3.4
+          },
+          "t" : 1789186153.21404
+        },
+        {
+          "camera" : {
+            "x" : 9.6,
+            "y" : 6.8
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 9.6,
+            "y" : 6.8
+          },
+          "t" : 1789186153.214045
+        },
+        {
+          "camera" : {
+            "x" : 6.2,
+            "y" : 6.800000000000001
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 6.2,
+            "y" : 6.800000000000001
+          },
+          "t" : 1789186153.214051
+        },
+        {
+          "camera" : {
+            "x" : 5.75,
+            "y" : 4.8
+          },
+          "cameraHeight" : 1.5,
+          "hit" : {
+            "x" : 5.75,
+            "y" : 4.8
+          },
+          "t" : 1789186153.214056
+        }
+      ],
+      "walkStartedAt" : 1789186153.214,
+      "walkTrail" : [
+        {
+          "x" : 5.9,
+          "y" : 4.8
+        },
+        {
+          "x" : 6.200000000000001,
+          "y" : 3.3999999999999995
+        },
+        {
+          "x" : 9.6,
+          "y" : 3.4
+        },
+        {
+          "x" : 9.6,
+          "y" : 6.8
+        },
+        {
+          "x" : 6.2,
+          "y" : 6.800000000000001
+        },
+        {
+          "x" : 5.75,
+          "y" : 4.8
+        }
+      ],
+      "wallSnapShift" : 0.45000000000000107
+    }
+  ],
+  "schemaVersion" : 1,
+  "sessionID" : "E6B6693E-1CCE-4B01-B80C-429C19AF521A",
+  "settings" : {
+    "maxHitDistance" : 4,
+    "measureFromHits" : false,
+    "minRayFloorDot" : 0.3,
+    "minSide" : 1.2,
+    "pad" : 0.5,
+    "sharedWallMaxShift" : 1.2,
+    "yawMinInlierFraction" : 0.35,
+    "yawMinSamples" : 40
+  }
+}

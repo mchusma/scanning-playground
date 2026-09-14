@@ -5,3 +5,13 @@ test-output/
 test-video-frames/
 test-video-input.mp4
 test-videos/*.mp4
+public/walkthrough-2735/
+xcuserdata/
+*.xcuserstate
+derivedData/
+
+# Local handoffs and interpretations contain private property evidence.
+/HANDOFF-POSTWALK.md
+/NATIVE-APP-HANDOFF.md
+/EXPERIMENT-2735.md
+/manual-2735.mjs
