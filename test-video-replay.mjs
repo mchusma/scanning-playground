@@ -363,7 +363,7 @@ async function runReplay(frames) {
   }
 
   // Only native-audio models support Live/bidi — use AUDIO modality and capture transcripts
-  const model = process.env.REPLAY_MODEL || 'gemini-2.5-flash-native-audio-preview-12-2025';
+  const model = process.env.REPLAY_MODEL || 'gemini-3.1-flash-live-preview';
   const homeState = new HomeState();
   const transcripts = [];
 

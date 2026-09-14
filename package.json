@@ -5,9 +5,20 @@
   "type": "module",
   "main": "server.mjs",
   "scripts": {
+    "experiment:2735": "node experiment-2735.mjs && node build-2735.mjs",
+    "plans:2735": "node build-2735.mjs",
     "dev": "node server.mjs",
     "start": "node server.mjs",
-    "test": "node --check server.mjs && node --check public/app.js && node --check public/svg-export.js && node test-svg-export.mjs"
+    "eval:capture": "node eval-capture.mjs",
+    "postwalk": "node postwalk.mjs",
+    "priors": "node property-priors.mjs",
+    "postwalk:site": "node postwalk-site.mjs",
+    "test:homewalk": "node --test test-homewalk-plan.mjs test-homewalk-geometry.mjs test-live-relay.mjs test-homewalk-replay.mjs test-homewalk-assistant.mjs test-homewalk-media.mjs",
+    "test": "node --check server.mjs && node --check public/app.js && node --check public/svg-export.js && node test-svg-export.mjs && node --test test-homewalk-plan.mjs test-homewalk-geometry.mjs test-live-relay.mjs test-homewalk-replay.mjs test-homewalk-assistant.mjs test-homewalk-media.mjs",
+    "replay:prepare": "node scripts/prepare-homewalk-replay.mjs",
+    "simulator:replay": "node scripts/run-homewalk-replay.mjs",
+    "test:replay": "node --test test-homewalk-replay.mjs",
+    "test:assistant": "node --test test-homewalk-assistant.mjs"
   },
   "keywords": [],
   "author": "",

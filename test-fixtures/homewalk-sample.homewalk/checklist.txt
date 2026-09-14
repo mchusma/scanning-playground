@@ -1,0 +1,8 @@
+[x] insurance: Major appliances noted
+[ ] insurance: HVAC / water heater shown
+[x] insurance: Electrical panel shown
+[ ] insurance: Valuables / serial numbers
+[ ] maintenance: Water shutoff shown
+[ ] maintenance: Filter / breaker locations
+[ ] guidebook: How to use this room
+[ ] guidebook: Anything that often breaks

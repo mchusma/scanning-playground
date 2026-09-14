@@ -490,7 +490,7 @@ async function runReplay(frames, testName) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) { console.error('GEMINI_API_KEY not set'); process.exit(1); }
 
-  const model = process.env.REPLAY_MODEL || 'gemini-2.5-flash-native-audio-preview-12-2025';
+  const model = process.env.REPLAY_MODEL || 'gemini-3.1-flash-live-preview';
   const homeState = new HomeState();
   const transcripts = [];
 
@@ -825,7 +825,7 @@ Only include corrections you are confident about based on what you see in the fr
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: process.env.PLAN_MODEL || 'gemini-3.8-flash',
       contents: [
         {
           role: 'user',
